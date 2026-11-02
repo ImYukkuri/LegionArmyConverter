@@ -25,17 +25,6 @@ Python对照解析服务可选：安装 `armylist-app/requirements.txt` 后执�
 入口：https://imyukkuri.github.io/LegionArmyConverter/ 。无运行时Python后端、API密钥或CDN。
 构建采用明确白名单并清理旧dist，不包含原始PDF、卡图、OCR或样本军表。
 
-## 保留与排除
-
-运行数据仅保留 `upgradecards/upgrades-slim.json`、
-`tacticalcards/tactical-cards.bilingual.json`、`keyword/`中的三份词典。
-映射移除了图片、OCR证据和重复来源元数据；图标字体保留MIT许可和来源。
-原始素材、旧项目、离线数据整理脚本及历史备份均移至项目外，禁止重新提交。
-
-**剩余风险：映射仍包含游戏卡文、规则引用和社区译文，不能因为是JSON或翻译就认为已获授权。**
-本次裁剪减少了原始素材再分发与个人路径暴露，不保证不存在版权风险。
-程序代码许可不授予第三方游戏文字、美术、商标的使用权。详见
-[发布边界](docs/PUBLICATION.md)、[许可说明](LICENSE)和[第三方说明](THIRD_PARTY_NOTICES.md)。
 
 ## 检查
 
