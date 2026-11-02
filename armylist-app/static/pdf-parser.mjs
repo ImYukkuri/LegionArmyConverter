@@ -133,6 +133,18 @@ export function resolveCommand(c,catalog,diagnostics=[]){
   if(candidates.length===1){const m=clone(candidates[0]);if(c.pips!==null&&c.pips!==m.pips)diagnostics.push({level:'warning',code:'command_pips_difference',message:`${c.name} 的 PDF 点数与本地卡库不同；保留 PDF 数值。`});return {...c,catalogId:m.id,zh:m.zh,keywords:m.keywords||[],catalogPips:m.pips,catalogDescription:m.description,weapons:m.weapons,catalogSources:m.provenance||[],match:'local_catalog',textPolicy:'Displayed rules use the local catalog; raw PDF card text is retained separately.'}}
   diagnostics.push({level:'warning',code:'command_unresolved',message:`命令卡“${c.name}”尚未唯一匹配，保留 PDF 原文。`});return {...c,zh:{name:c.name,description:c.pdfDescription||c.rawText||''},match:'unresolved'};
 }
+export function parseCommandPanel(geo,box,page,index){
+  const items=geo.items.filter(t=>inside(t,box)),ls=lines(items);if(!ls.length)return null;
+  let first=ls[0].text,pip=first.match(/\((\d+)-pip\)/),descriptionStart=1;
+  const bars=geo.rects.filter(b=>b[0]>=box[0]&&b[2]<=box[2]&&b[2]-b[0]>(box[2]-box[0])*.8&&b[1]>box[1]+2&&b[3]<box[3]&&b[3]-b[1]<(box[3]-box[1])*.35);
+  if(bars.length){
+    const headerBottom=Math.min(...bars.map(b=>b[1])),header=items.filter(t=>t.y<headerBottom),titleSize=Math.max(0,...header.map(t=>t.height));
+    const title=lines(header.filter(t=>t.height>=titleSize*.85)).map(r=>r.text).join(' '),wrappedPip=title.match(/\((\d+)\s*-\s*pip\)/i);
+    if(wrappedPip){const owner=lines(header.filter(t=>t.height<titleSize*.85)).map(r=>r.text).join(' ');first=title+(owner?' '+owner:'');pip=first.match(/\((\d+)\s*-\s*pip\)/i);descriptionStart=ls.findIndex(r=>r.y>=headerBottom);if(descriptionStart<0)descriptionStart=ls.length}
+  }
+  const rawText=ls.map(r=>r.text).join('\n');
+  return {id:`command-${index}`,name:pip?first.slice(0,pip.index).trim():first,owner:pip?first.slice(pip.index+pip[0].length).trim():'',pips:pip?Number(pip[1]):null,rawText,pdfDescription:ls.slice(descriptionStart).map(r=>r.text).join('\n'),textQuality:rawText.includes('(no card text available)')?'missing':'extracted-unreviewed',provenance:{page,bbox:box}};
+}
 function enrich(army,catalog){
   const {display:terms,upgrades,commands}=catalog;
   const display=s=>{if(!s)return '';const b=s.replace(/\s*\(#\d+\)$/,'');return (terms[b]||b)+s.slice(b.length)};
@@ -165,7 +177,7 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
       onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const geo=await pageGeometry(await doc.getPage(n)),text=geo.items.map(t=>t.text).join(' ');
       if(n===1)army.title=textIn(geo.items,[0,0,geo.width,30])||army.title;
       if(text.includes('COMMAND CARDS')){
-        for(const box of geo.panels){const ls=lines(geo.items.filter(t=>inside(t,box)));if(!ls.length)continue;const first=ls[0].text,pip=first.match(/\((\d+)-pip\)/),rawText=ls.map(r=>r.text).join('\n');army.commandCards.push({id:`command-${army.commandCards.length+1}`,name:pip?first.slice(0,pip.index).trim():first,owner:pip?first.slice(pip.index+pip[0].length).trim():'',pips:pip?Number(pip[1]):null,rawText,pdfDescription:ls.slice(1).map(r=>r.text).join('\n'),textQuality:rawText.includes('(no card text available)')?'missing':'extracted-unreviewed',provenance:{page:n,bbox:box}})}
+        for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}
       }else if(text.includes('Keyword Glossary')){
         const bold=geo.items.find(t=>t.text.includes('Keyword Glossary'))?.font;
         for(const [x0,x1]of [[0,geo.width/2],[geo.width/2,geo.width]]){let current=null;for(const row of lines(geo.items.filter(t=>t.x>=x0&&t.x<x1))){const prefix=row.items.filter(t=>t.font===bold).map(t=>t.text).join('');if(prefix.includes('.')&&prefix.length>2){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}

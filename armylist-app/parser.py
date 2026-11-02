@@ -89,12 +89,27 @@ def command_panel(page,box,page_no,index):
     lines=panel.extract_text_lines()
     if not lines:return None
     first=lines[0]['text'];pip=re.search(r'\((\d+)-pip\)',first)
+    description_start=1
+    # The exporter wraps the title/pip and the smaller owner column independently.
+    bars=[r for r in page.rects if r['x0']>=box[0]and r['x1']<=box[2]
+          and r['width']>(box[2]-box[0])*.8 and r['top']>box[1]+2
+          and r['bottom']<box[3]and r['height']<(box[3]-box[1])*.35]
+    if bars:
+        header_bottom=min(r['top']for r in bars)
+        header=panel.crop((panel.bbox[0],panel.bbox[1],panel.bbox[2],header_bottom))
+        title_size=max((c['size']for c in header.chars),default=0)
+        title=clean(header.filter(lambda c:c.get('object_type')=='char'and c.get('size',0)>=title_size*.85).extract_text())
+        wrapped_pip=re.search(r'\((\d+)\s*-\s*pip\)',title,re.I)
+        if wrapped_pip:
+            owner=clean(header.filter(lambda c:c.get('object_type')=='char'and c.get('size',0)<title_size*.85).extract_text())
+            first=title+(' '+owner if owner else '');pip=re.search(r'\((\d+)\s*-\s*pip\)',first,re.I)
+            description_start=next((i for i,line in enumerate(lines)if line['top']>=header_bottom),len(lines))
     if pip:
         name=first[:pip.start()].strip();owner=first[pip.end():].strip()
     else:name,owner=first,''
     raw='\n'.join(x['text']for x in lines)
     return {'id':f'command-{index}','name':name,'owner':owner,'pips':int(pip[1])if pip else None,
-            'rawText':raw,'pdfDescription':'\n'.join(x['text']for x in lines[1:]),
+            'rawText':raw,'pdfDescription':'\n'.join(x['text']for x in lines[description_start:]),
             'textQuality':'missing'if '(no card text available)'in raw else 'extracted-unreviewed',
             'provenance':{'page':page_no,'bbox':box}}
 
