@@ -73,7 +73,7 @@ def keyword(raw,glossary):
         return {'raw':raw,'id':key,'label':entry['rulebook_heading'],'summary':entry['summary'],'full':entry['rulebook_quote'],
                 'timing':entry['timing'],'source':'local_supplement'}
     quote=glossary.get(key,'')
-    return {'raw':raw,'id':key,'label':DISPLAY.get(raw,raw),'summary':'中文词典暂未收录。'+('完整模式保留 PDF 英文原文。'if quote else ''),
+    return {'raw':raw,'id':key,'label':DISPLAY.get(raw,raw),'summary':quote or '此词条暂缺规则文本。',
             'full':quote or '此词条暂缺规则文本。','timing':[],'source':'pdf_glossary'if quote else 'unresolved'}
 
 def unit_basename(name):return re.sub(r'\s*\(#\d+\)$','',name)
@@ -115,7 +115,7 @@ def command(card,diagnostics):
             diagnostics.append({'level':'warning','code':'command_pips_difference','message':f'{card["name"]} 的 PDF 点数与本地卡库不同；保留 PDF 数值。'})
         return result
     diagnostics.append({'level':'warning','code':'command_unresolved','message':f'命令卡“{card["name"]}”尚未唯一匹配，保留 PDF 原文。'})
-    return {**card,'zh':{'name':card['name'],'description':'暂无固化中文译文，请参阅 PDF 原文。'},'match':'unresolved'}
+    return {**card,'zh':{'name':card['name'],'description':card.get('pdfDescription')or card.get('rawText')or ''},'match':'unresolved'}
 
 def enrich(army):
     diagnostics=army['diagnostics']

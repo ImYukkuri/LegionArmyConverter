@@ -56,3 +56,8 @@ Direct显示保留英文和指定单位类型，内部统一使用direct规则ID
 武器中英文名改为同行，狭窄屏幕可自然换行。
 回归测试：`node armylist-app/tests/keyword-normalization.cjs`；
 Python/浏览器规则解析对照、去重、来源浮窗、填色几何尺寸、移动端和武器名称均有检查。
+
+战术卡未匹配译文时，正文依次使用PDF提取正文、完整PDF卡文及已有英文卡库正文。
+兼容旧JSON内的缺译提示，不把提示当作卡文。PDF词条表已有释义时直接显示原文。
+此回退只读取用户导入的数据，不将军表或原文另存为公开运行映射。
+回归测试：`node armylist-app/tests/command-fallback.cjs`，包含离线HTML与旧JSON。

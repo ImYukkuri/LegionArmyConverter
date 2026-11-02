@@ -29,6 +29,7 @@
     "armylist-app/static/roster.html",
     "armylist-app/static/roster.js",
     "armylist-app/static/style.css",
+    "armylist-app/tests/command-fallback.cjs",
     "armylist-app/tests/keyword-normalization.cjs",
     "armylist-app/tests/public-smoke.cjs",
     "docs/PUBLICATION.md",

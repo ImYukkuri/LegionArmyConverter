@@ -126,7 +126,12 @@ export function resolveKeyword(raw,catalog,glossary={}){
     if(['Mercenary','Independent','Equip'].includes(base)){let extra=raw.slice(base.length).replace(/^[ :]+|[ :]+$/g,'');for(const [en,zh]of Object.entries(terms).sort((a,b)=>b[0].length-a[0].length))extra=extra.split(en).join(zh);extra=extra.replaceAll(' and ','及').replaceAll(' or ','或');label=label.split(/：|X/)[0]+(extra?'：'+extra:'')}
     return {raw,id:key,label,summary:item.summary,full:item.rulebook_quote,timing:item.timing,source:byRule[key]?'reviewed_dictionary':'local_supplement'};
   }
-  const quote=glossary[key]||'';return {raw,id:key,label:terms[raw]||raw,summary:'中文词典暂未收录。'+(quote?'完整模式保留 PDF 英文原文。':''),full:quote||'此词条暂缺规则文本。',timing:[],source:quote?'pdf_glossary':'unresolved'};
+  const quote=glossary[key]||'';return {raw,id:key,label:terms[raw]||raw,summary:quote||'此词条暂缺规则文本。',full:quote||'此词条暂缺规则文本。',timing:[],source:quote?'pdf_glossary':'unresolved'};
+}
+export function resolveCommand(c,catalog,diagnostics=[]){
+  let candidates=catalog.commands.filter(k=>norm(k.name)===norm(c.name));const same=candidates.filter(k=>k.pips===c.pips);if(same.length)candidates=same;
+  if(candidates.length===1){const m=clone(candidates[0]);if(c.pips!==null&&c.pips!==m.pips)diagnostics.push({level:'warning',code:'command_pips_difference',message:`${c.name} 的 PDF 点数与本地卡库不同；保留 PDF 数值。`});return {...c,catalogId:m.id,zh:m.zh,keywords:m.keywords||[],catalogPips:m.pips,catalogDescription:m.description,weapons:m.weapons,catalogSources:m.provenance||[],match:'local_catalog',textPolicy:'Displayed rules use the local catalog; raw PDF card text is retained separately.'}}
+  diagnostics.push({level:'warning',code:'command_unresolved',message:`命令卡“${c.name}”尚未唯一匹配，保留 PDF 原文。`});return {...c,zh:{name:c.name,description:c.pdfDescription||c.rawText||''},match:'unresolved'};
 }
 function enrich(army,catalog){
   const {display:terms,upgrades,commands}=catalog;
@@ -144,11 +149,7 @@ function enrich(army,catalog){
     u.keywords=u.keywords.map(keyword);u.fromUpgrades=u.fromUpgrades.map(keyword);
     for(const w of u.weapons){w.zh={name:display(w.name)};w.keywords=w.keywords.map(keyword)}
   }
-  army.commandCards=army.commandCards.map(c=>{
-    let candidates=commands.filter(k=>norm(k.name)===norm(c.name));const same=candidates.filter(k=>k.pips===c.pips);if(same.length)candidates=same;
-    if(candidates.length===1){const m=clone(candidates[0]);if(c.pips!==null&&c.pips!==m.pips)army.diagnostics.push({level:'warning',code:'command_pips_difference',message:`${c.name} 的 PDF 点数与本地卡库不同；保留 PDF 数值。`});return {...c,catalogId:m.id,zh:m.zh,keywords:m.keywords||[],catalogPips:m.pips,catalogDescription:m.description,weapons:m.weapons,catalogSources:m.provenance||[],match:'local_catalog',textPolicy:'Displayed rules use the local catalog; raw PDF card text is retained separately.'}}
-    army.diagnostics.push({level:'warning',code:'command_unresolved',message:`命令卡“${c.name}”尚未唯一匹配，保留 PDF 原文。`});return {...c,zh:{name:c.name,description:'暂无固化中文译文，请参阅 PDF 原文。'},match:'unresolved'};
-  });
+  army.commandCards=army.commandCards.map(c=>resolveCommand(c,{commands},army.diagnostics));
   for(const u of army.units){u.isCounterpart=u.subtitle?.toLowerCase()==='counterpart';u.countedPoints=u.isCounterpart?0:u.points}
   army.catalogVersions=catalog.versions;army.totals={entries:army.units.length,pdfPoints:sum(army.units.map(u=>u.countedPoints)),counterpartPointsExcluded:sum(army.units.filter(u=>u.isCounterpart).map(u=>u.points)),printedPointsSum:sum(army.units.map(u=>u.provenance.printedPoints)),weapons:sum(army.units.map(u=>u.weapons.length)),commands:army.commandCards.length};return army;
 }
