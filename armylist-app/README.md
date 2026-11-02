@@ -1,5 +1,7 @@
 # Application
 
+Parsing changes follow ../docs/PARSING_CONTRACT.md.
+
 From the repository root, run `npm ci --ignore-scripts` and `npm run build`.
 Serve dist with any HTTP server, including VS Code Live Server.
 The site automatically loads the five reviewed runtime mappings; users provide
@@ -35,6 +37,7 @@ and locations (page, unitId/unitName where relevant, context). Repeated occurren
 share an item and retain every location. PDF glossary text is used for untranslated
 keywords; absent rules keep the source name without inventing rules or timings.
 totals.incomplete flags structural failures; a missing translation alone does not.
-The entry, roster and offline HTML show the same downloadable review list.
+The extraction page shows the downloadable review list. The roster and offline
+HTML retain it in JSON but do not render parsing warnings.
 Regression: `node armylist-app/tests/tolerant-import.cjs`; optional external PDF
 via LEGION_TOLERANT_PDF. No user PDFs or generated reviews belong in the repository.

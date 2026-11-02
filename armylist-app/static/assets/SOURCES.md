@@ -10,6 +10,6 @@ using fontTools SVGPathPen. They require no remote fonts and remain available
 in exported offline HTML. This is a community reproduction of Legion card
 symbols, not an official asset pack.
 
-Glyph mapping: commander=5, operative=s, corps=6, special forces=7,
-support=8, heavy=9; hit=h, critical=c, block=b,
+Glyph mapping: commander=5, operative=b, corps=6, special forces=7,
+support=8, heavy=9; hit=h, critical=c, block=s,
 attack surge=a, defense surge=d.

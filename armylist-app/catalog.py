@@ -12,11 +12,24 @@ UPGRADES=load_json(ROOT/'upgradecards/upgrades-slim.json')['cards']
 COMMANDS=load_json(ROOT/'tacticalcards/tactical-cards.bilingual.json')['cards']
 ALIASES={'mandalorians_are_stronger_together':'mandalorian_are_stronger_together',
          'we_re_not_regs':'were_not_regs','we_are_not_regs':'were_not_regs','prepared_positions':'prepared_position',
-         'anti_material':'anti_materiel'}
+         'anti_material':'anti_materiel','fixed':'fixed_front','hover':'hover_ground'}
 def norm(s):return re.sub(r'[^a-z0-9]+','_',s.lower()).strip('_')
 def canonical_rule_id(raw):
     key=re.sub(r'_x$','',norm(raw))
     return ALIASES.get(key,key)
+PARAMETER_RULES={'Direct':('direct','unit'),'Entourage':('entourage','unit'),'Retinue':('retinue','unit'),
+ 'Detachment':('detachment','unit'),'Associate':('associate','unit'),'Teamwork':('teamwork','unit'),
+ 'Coordinate':('coordinate','unit'),'Aid':('aid','unit'),'Compel':('compel','unit'),
+ 'Equip':('equip','equipment'),'Mercenary':('mercenary','faction'),'Independent':('independent','token'),
+ 'Hover':('hover_ground','mode'),'Fixed':('fixed_front','arc'),'Sidearm':('sidearm','mode'),
+ 'AI':('ai','action'),'Advanced Targeting':('advanced_targeting','unit'),'Eyes on the Prize':('eyes_on_the_prize','keyword')}
+def keyword_parameter(raw):
+    for prefix,(key,kind)in PARAMETER_RULES.items():
+        match=re.match(r'^'+re.escape(prefix)+r'(?:\s*[:：]\s*|\s+)(.+)$',raw.strip(),re.I)
+        if match:return {'id':key,'parameter':match[1].strip(),'parameterKind':kind}
+    return None
+def parameter_label(heading,parameter):return re.split(r'[:：]',heading)[0].strip()+'：'+parameter
+DISPLAY_HEADINGS={'one_step_ahead':'领先一步','immune_range_1_weapons':'免疫：射程1武器'}
 BY_RULE={k['identifier']:k for k in KEYWORDS}
 SUPPLEMENT={k['identifier']:k for path in ('keyword/legion_keyword_dictionary_supplement_zh.json','keyword/tactical_keyword_supplement_zh.json')for k in load_json(ROOT/path)}
 DISPLAY={
@@ -40,43 +53,50 @@ def display(s):
     return DISPLAY.get(base,base)+s[len(base):]
 
 def keyword(raw,glossary):
+    parameter=keyword_parameter(raw)
     base=re.sub(r'\s+\d+$','',raw).strip()
-    if raw.startswith('Mercenary'):base='Mercenary'
-    if raw.startswith('Independent'):base='Independent'
-    if raw.startswith('Equip'):base='Equip'
     direct=re.match(r'^Direct(?:\s|:|$)',raw,re.I)
     if direct:base='Direct'
     parameterized=re.match(r'^(Arm|Detonate)\s+(?:\d+|X)(?:\s*:|$)',raw,re.I)
     if parameterized:base=parameterized[1]
-    key=canonical_rule_id(base)
+    key=parameter['id']if parameter else canonical_rule_id(base)
     item=BY_RULE.get(key)or SUPPLEMENT.get(key)
     if item:
-        title=item['rulebook_heading'].replace('完 成 任 务','完成任务')
+        title=DISPLAY_HEADINGS.get(key,item['rulebook_heading']).replace('完 成 任 务','完成任务')
         match=re.search(r'\s+(\d+)$',raw)
         if match:title=title.replace('X',match[1])
-        if direct:title=raw
+        if parameter:title=parameter_label(title,parameter['parameter'])
         elif key in ('arm','detonate'):
-            parameter=re.match(r'^(?:Arm|Detonate)\s+(\d+|X)(?:\s*:\s*(.+))?$',raw,re.I)
-            if parameter:
-                title=item['rulebook_heading'].split('：')[0].replace('X',parameter[1])
-                if parameter[2]:title+='：'+parameter[2]
+            count_type=re.match(r'^(?:Arm|Detonate)\s+(\d+|X)(?:\s*:\s*(.+))?$',raw,re.I)
+            if count_type:
+                title=item['rulebook_heading'].split('：')[0].replace('X',count_type[1])
+                if count_type[2]:title+='：'+count_type[2]
         extra=raw[len(base):].strip(' :')
-        if base in ('Mercenary','Independent','Equip'):
+        if not parameter and base in ('Mercenary','Independent','Equip'):
             main=re.split('：|X',title)[0]
             for en,zh in sorted(DISPLAY.items(),key=lambda kv:len(kv[0]),reverse=True):extra=extra.replace(en,zh)
             extra=extra.replace(' and ','及').replace(' or ','或')
             title=main+('：'+extra if extra else '')
         return {'raw':raw,'id':key,'label':title,'summary':item['summary'],'full':item['rulebook_quote'],
-                'timing':item['timing'],'source':'reviewed_dictionary'if key in BY_RULE else 'local_supplement'}
+                'timing':item['timing'],'source':'reviewed_dictionary'if key in BY_RULE else 'local_supplement',**(parameter or {})}
     if key in SUPPLEMENT:
         entry=SUPPLEMENT[key]
         return {'raw':raw,'id':key,'label':entry['rulebook_heading'],'summary':entry['summary'],'full':entry['rulebook_quote'],
                 'timing':entry['timing'],'source':'local_supplement'}
     quote=glossary.get(key,'')
+    if not quote and parameter:quote=glossary.get(norm(raw).split('_',1)[0],'')
     return {'raw':raw,'id':key,'label':DISPLAY.get(raw,raw),'summary':quote or '此词条暂缺规则文本。',
             'full':quote or '此词条暂缺规则文本。','timing':[],'source':'pdf_glossary'if quote else 'unresolved'}
 
 def unit_basename(name):return re.sub(r'\s*\(#\d+\)$','',name)
+def normalize_card_parameters(card):
+    for group in [card,*card.get('weapons',[])]:
+        for k in group.get('zh',{}).get('keywords',[]):
+            parameter=keyword_parameter(k.get('raw')or k.get('label',''))
+            if parameter:
+                item=BY_RULE.get(parameter['id'])or SUPPLEMENT.get(parameter['id'])
+                if item:k.update(parameter);k['ruleId']=parameter['id'];k['label']=parameter_label(item['rulebook_heading'],parameter['parameter'])
+    return card
 def upgrade(name,unit,diagnostics):
     candidates=[c for c in UPGRADES if norm(name)in {norm(c['name']),*(norm(n)for n in c['names'])}]
     base=unit_basename(unit['name'])
@@ -97,7 +117,7 @@ def upgrade(name,unit,diagnostics):
         diagnostics.append({'level':'warning','code':'upgrade_unresolved','unitId':unit['id'],'message':f'升级卡“{name}”未能唯一匹配，保留英文。','candidates':[c['id']for c in candidates]})
         return {'name':name,'zh':{'name':display(name)},'match':'unresolved'}
     card=copy.deepcopy(candidates[0]);card['match']='local_catalog'
-    return card
+    return normalize_card_parameters(card)
 
 def command(card,diagnostics):
     candidates=[c for c in COMMANDS if norm(c['name'])==norm(card['name'])]
@@ -114,7 +134,7 @@ def command(card,diagnostics):
         result['textPolicy']='Displayed rules use the local catalog; raw PDF card text is retained separately.'
         if card['pips']is not None and card['pips']!=match['pips']:
             diagnostics.append({'level':'warning','code':'command_pips_difference','message':f'{card["name"]} 的 PDF 点数与本地卡库不同；保留 PDF 数值。'})
-        return result
+        return normalize_card_parameters(result)
     diagnostics.append({'level':'warning','code':'command_unresolved','message':f'命令卡“{card["name"]}”尚未唯一匹配，保留 PDF 原文。'})
     return {**card,'zh':{'name':card['name'],'description':card.get('pdfDescription')or card.get('rawText')or ''},'match':'unresolved'}
 

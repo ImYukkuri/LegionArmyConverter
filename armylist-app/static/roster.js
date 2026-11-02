@@ -50,7 +50,7 @@ const timings=rule=>rule.timing?.length?rule.timing:['unclassified'];
 const matchesTiming=rule=>!filterEnabled||timings(rule).some(t=>selectedTimings.has(t));
 const timingBadge=t=>'<span class="timing-badge" data-timing="'+esc(t)+'">'+esc(timingLabels[t]||t)+'</span>';
 const ruleKey=k=>{const key=String(k.ruleId||k.id||'').toLowerCase().replace(/[\s-]+/g,'_').replace(/_x$/,'');return key==='anti_material'?'anti_materiel':/^direct(?:_|$)/.test(key)?'direct':key};
-const ruleQualifier=k=>ruleKey(k)==='direct'?(k.label||k.raw||'').replace(/^Direct\s*:?\s*/i,'').trim().toLowerCase():(k.label||'').split(/[:：]/).slice(1).join(':').replace(/[\dX\s]+/g,'');
+const ruleQualifier=k=>k.parameter?String(k.parameter).trim().toLowerCase():(k.label||'').includes('：')?(k.label||'').split('：').slice(1).join('：').trim().toLowerCase():ruleKey(k)==='direct'&&/^Direct(?:\s|:)/i.test(k.label||k.raw||'')?(k.label||k.raw).replace(/^Direct\s*:?\s*/i,'').trim().toLowerCase():'';
 function sourceCard(c,index){return {key:(c.id||c.name)+'|'+index,name:c.zh?.name||c.name,englishName:c.name,description:c.zh?.description?.length?c.zh.description:c.description||[]}}
 function mergeSources(...lists){return [...new Map(lists.flat().map(s=>[s.key,s])).values()]}
 function withSource(k,c,index){return {...k,upgradeSources:mergeSources(k.upgradeSources||[],[sourceCard(c,index)])}}
@@ -90,7 +90,7 @@ function mergeRuleVariants(list){
 }
 function chip(rule){
   const index=rules.push(rule)-1;
-  return '<button type="button" data-kw="'+index+'" data-rule-id="'+esc(ruleKey(rule))+'" class="keyword '+(!rule.summary||rule.source==='unresolved'?'missing':'')+'" aria-haspopup="dialog"><span class="keyword-timings">'+timings(rule).map(timingBadge).join('')+'</span><span class="keyword-label"><span class="keyword-name">'+esc(rule.label||rule.raw||rule.id)+'</span>'+((rule.upgradeSources||[]).length?'<span class="keyword-origins">'+rule.upgradeSources.map(c=>'<span>来自 '+esc(c.name)+'</span>').join('')+'</span>':'')+'</span><span class="keyword-summary">'+prose(rule.summary||'词典暂缺此项简写。')+'</span></button>';
+  return '<button type="button" data-kw="'+index+'" data-rule-id="'+esc(ruleKey(rule))+'" class="keyword '+(!rule.summary||rule.source==='unresolved'?'missing':'')+'" aria-haspopup="dialog"><span class="keyword-timings">'+timings(rule).map(timingBadge).join('')+'</span><span class="keyword-label"><span class="keyword-name">'+esc(rule.label||rule.raw||rule.id)+'</span>'+((rule.upgradeSources||[]).length?'<span class="keyword-origins">'+rule.upgradeSources.map(c=>'<span>来自 '+esc(c.name)+'</span>').join('')+'</span>':'')+'</span><span class="keyword-summary">'+prose(rule.source==='unresolved'?(rule.raw||rule.label):rule.summary||rule.full||rule.raw||rule.label)+'</span></button>';
 }
 const chips=list=>'<div class="chips">'+mergeRuleVariants(list).filter(matchesTiming).map(chip).join('')+'</div>';
 function sortedRules(list){
@@ -125,7 +125,7 @@ function weapons(ws,zhws=null,owner=null){
 }
 function upgrade(c,u,index){
   const z=c.zh||{},key=cardKey('upgrade',u.id,index,c),description=z.description?.length?z.description:c.description||[];
-  return '<details class="upgrade play-card" open data-card-kind="upgrade" data-card-key="'+esc(key)+'" data-play-state="'+currentState('upgrade',key)+'"><summary><span class="card-title">'+esc(z.name||c.name)+'<small>'+esc(c.cost??'—')+' pts · '+esc(c.name)+'</small></span>'+stateBadge('upgrade',key)+'</summary><div class="upgrade-body">'+stateControls('upgrade',key)+usageBadges(c)+(c.match==='unresolved'?'<p class="note">尚未匹配到唯一的本地升级卡，保留英文名称。</p>':(z.requirements?.length?'<div class="card-requirements">'+z.requirements.map(prose).join(' · ')+'</div>':'')+'<div class="card-description">'+(description.length?description.map(p=>'<p>'+prose(p)+'</p>').join(''):'<p class="muted">此升级卡没有额外正文，武器与词条见下方。</p>')+'</div>'+keywordGroup('卡牌关联词条',(z.keywords||[]).map(k=>withSource(k,c,index)))+(c.weapons?.length?'<div class="group-label group">升级武器</div>'+weapons(c.weapons,z.weapons,{card:c,index}):'')+'<details class="raw-text detail-only"><summary>升级卡英文原文</summary><p>'+(c.description||[]).map(prose).join(' ')+'</p></details>')+'</div></details>';
+  return '<details class="upgrade play-card" open data-card-kind="upgrade" data-card-key="'+esc(key)+'" data-play-state="'+currentState('upgrade',key)+'"><summary><span class="card-title">'+esc(z.name||c.name)+'<small>'+esc(c.cost??'—')+' pts · '+esc(c.name)+'</small></span>'+stateBadge('upgrade',key)+'</summary><div class="upgrade-body">'+stateControls('upgrade',key)+usageBadges(c)+(c.match==='unresolved'?'':(z.requirements?.length?'<div class="card-requirements">'+z.requirements.map(prose).join(' · ')+'</div>':'')+'<div class="card-description">'+(description.length?description.map(p=>'<p>'+prose(p)+'</p>').join(''):'<p class="muted">此升级卡没有额外正文，武器与词条见下方。</p>')+'</div>'+keywordGroup('卡牌关联词条',(z.keywords||[]).map(k=>withSource(k,c,index)))+(c.weapons?.length?'<div class="group-label group">升级武器</div>'+weapons(c.weapons,z.weapons,{card:c,index}):'')+'<details class="raw-text detail-only"><summary>升级卡英文原文</summary><p>'+(c.description||[]).map(prose).join(' ')+'</p></details>')+'</div></details>';
 }
 function statTable(s){
   const defense=s.defense==='Red'||s.defense==='White'?'<span class="defense-square '+s.defense.toLowerCase()+'" role="img" aria-label="'+(s.defense==='Red'?'红骰':'白骰')+'" title="'+(s.defense==='Red'?'红骰':'白骰')+'"></span>':esc(s.defense??'—');
@@ -148,7 +148,7 @@ function unitHtml(u){
   const list=mergedUnitRules(u);
   const groups=sortedRules(list),noMatch=filterEnabled&&!list.some(matchesTiming)&&!u.weapons.some(w=>w.keywords.some(matchesTiming));
   const points=isCounterpart(u)?'<span class="counterpart-cost" title="PDF标价 '+esc(u.points)+' 分；已计入所属单位，不重复计入总分">伙伴 · 不重复计分</span>':esc(u.points??'—')+' <small>pts</small>';
-  return '<details class="unit" id="'+esc(u.id)+'"><summary>'+unitOverview(u)+'<div class="points">'+(!filterEnabled?points:'')+'</div></summary><div class="unit-body">'+(u.parseStatus==='partial'?'<p class="partial-unit-note">此单位仅部分解析，缺失字段显示为 —。请查看下方待核对内容和原始文字。</p>':'')+(!filterEnabled?statTable(u.stats):'')+groups+(u.weapons.length?'<div class="group unit-weapons" aria-label="武器">'+weapons(u.weapons,null,{unit:u})+'</div>':'')+(noMatch?'<p class="filter-empty">此单位没有匹配当前时机的词条。</p>':'')+(!filterEnabled&&u.upgrades.length?'<div class="group upgrades-section"><div class="group-label">升级卡 · '+u.upgrades.length+' 张</div>'+u.upgrades.map((c,i)=>upgrade(c,u,i)).join('')+'</div>':'')+(!filterEnabled?'<div class="source detail-only">PDF 第 '+esc(u.provenance.page)+' 页 · '+esc(u.id)+' · '+(isCounterpart(u)?'伙伴费用已计入所属单位；此条不计入总分。':pointsSource(u))+'</div>':'')+'</div></details>';
+  return '<details class="unit" id="'+esc(u.id)+'"><summary>'+unitOverview(u)+'<div class="points">'+(!filterEnabled?points:'')+'</div></summary><div class="unit-body">'+(!filterEnabled?statTable(u.stats):'')+groups+(u.weapons.length?'<div class="group unit-weapons" aria-label="武器">'+weapons(u.weapons,null,{unit:u})+'</div>':'')+(noMatch?'<p class="filter-empty">此单位没有匹配当前时机的词条。</p>':'')+(!filterEnabled&&u.upgrades.length?'<div class="group upgrades-section"><div class="group-label">升级卡 · '+u.upgrades.length+' 张</div>'+u.upgrades.map((c,i)=>upgrade(c,u,i)).join('')+'</div>':'')+(!filterEnabled?'<div class="source detail-only">PDF 第 '+esc(u.provenance.page)+' 页 · '+esc(u.id)+' · '+(isCounterpart(u)?'伙伴费用已计入所属单位；此条不计入总分。':pointsSource(u))+'</div>':'')+'</div></details>';
 }
 function commandDescription(c){
   const translated=c.zh?.description;
@@ -157,7 +157,7 @@ function commandDescription(c){
 }
 function commandHtml(c,index){
   const z=c.zh||{},pips=c.pips??c.catalogPips,key=cardKey('command','army',index,c);
-  return '<details class="command-card play-card" open data-card-kind="command" data-card-key="'+esc(key)+'" data-play-state="'+currentState('command',key)+'"><summary><span class="pips" title="'+(c.pips==null?'卡库点数，PDF未提供':'PDF点数')+'">'+(Number.isInteger(pips)?pips===0?'0': '●'.repeat(Math.min(pips,5)):'?')+'</span><div class="card-title">'+esc(z.name||c.name)+'<span class="en-name">'+esc(c.name)+'</span></div>'+stateBadge('command',key)+'</summary><div class="command-body">'+stateControls('command',key)+'<div class="owner">'+prose(z.owner||c.owner||'通用')+' · 命令：'+prose(z.orders||'未提供')+'</div><p class="card-description">'+prose(commandDescription(c))+'</p>'+keywordGroup('战术卡关联词条',c.zh?.keywords||c.keywords||[])+(c.weapons?.length?'<div class="group-label group">战术卡武器</div>'+weapons(c.weapons):'')+'<details class="raw-text detail-only"><summary>卡库英文原文与 PDF 提取记录</summary><p>'+prose(c.catalogDescription||'无对应卡库原文')+'</p><pre>'+esc(c.rawText)+'</pre></details>'+(c.textQuality==='missing'?'<div class="note detail-only">PDF 卡文缺失，中文来自同名本地卡库。原始缺失记录已保留。</div>':'')+'<div class="source detail-only">PDF 第 '+esc(c.provenance.page)+' 页 · '+esc(c.catalogId||'未匹配')+'</div></div></details>';
+  return '<details class="command-card play-card" open data-card-kind="command" data-card-key="'+esc(key)+'" data-play-state="'+currentState('command',key)+'"><summary><span class="pips" title="'+(c.pips==null?'卡库点数，PDF未提供':'PDF点数')+'">'+(Number.isInteger(pips)?pips===0?'0': '●'.repeat(Math.min(pips,5)):'?')+'</span><div class="card-title">'+esc(z.name||c.name)+'<span class="en-name">'+esc(c.name)+'</span></div>'+stateBadge('command',key)+'</summary><div class="command-body">'+stateControls('command',key)+'<div class="owner">'+prose(z.owner||c.owner||'通用')+' · 命令：'+prose(z.orders||'未提供')+'</div><p class="card-description">'+prose(commandDescription(c))+'</p>'+keywordGroup('战术卡关联词条',c.zh?.keywords||c.keywords||[])+(c.weapons?.length?'<div class="group-label group">战术卡武器</div>'+weapons(c.weapons):'')+'<details class="raw-text detail-only"><summary>卡库英文原文与 PDF 提取记录</summary><p>'+prose(c.catalogDescription||'无对应卡库原文')+'</p><pre>'+esc(c.rawText)+'</pre></details>'+'<div class="source detail-only">PDF 第 '+esc(c.provenance.page)+' 页 · '+esc(c.catalogId||'未匹配')+'</div></div></details>';
 }
 function valid(d){if(d?.schema!=='legion-army/v2'||!Array.isArray(d.units)||!d.units.length||d.units.some(u=>!u.zh||!u.stats||!Array.isArray(u.weapons)||!Array.isArray(u.keywords)||!Array.isArray(u.upgrades))||!Array.isArray(d.commandCards))throw new Error('不是有效的 legion-army/v2 军表 JSON。');return d}
 function allUnitRules(){return army.units.flatMap(u=>[...u.keywords,...u.fromUpgrades,...u.weapons.flatMap(w=>w.keywords),...u.upgrades.flatMap(c=>[...(c.zh?.keywords||[]),...(c.zh?.weapons||[]).flatMap(w=>w.keywords||[])])])}
@@ -179,12 +179,10 @@ function load(d){
   initCardStates();
   $('#empty').hidden=true;$('#army').hidden=false;$('#viewer-status').textContent='';
   $('#army-title').textContent=army.title.replace(/\s*[—-]\s*Stat Reference$/,'').replace(/^Untitled$/,'未命名军表');
-  $('#army-source').textContent=army.source.pdf+' · 本地中文映射';$('#points').textContent=army.units.reduce((sum,u)=>sum+(isCounterpart(u)?0:u.points||0),0)+(army.totals?.incomplete?'（待核对）':'');$('#unit-count').textContent=army.units.length+' 个条目（含伙伴，伙伴不重复计分）';
+  $('#army-source').textContent=army.source.pdf+' · 本地中文映射';$('#points').textContent=army.units.reduce((sum,u)=>sum+(isCounterpart(u)?0:u.points||0),0);$('#unit-count').textContent=army.units.length+' 个条目（含伙伴，伙伴不重复计分）';
   $('#command-count').textContent=army.commandCards.length+' 张';$('#show-commands').textContent='战术卡 · '+army.commandCards.length;
   availableTimings=[...new Set([...Object.keys(timingLabels),...allUnitRules().flatMap(timings)])];
   renderTimingOptions();renderArmy(new Set());
-  LegionReview.render($('#review-items'),army);
-  $('#notes').replaceChildren();for(const n of army.diagnostics||[]){const li=document.createElement('li');li.textContent=n.message;$('#notes').append(li)}
   measureToolbar();
 }
 document.querySelectorAll('button[data-view]').forEach(b=>b.addEventListener('click',()=>{document.body.dataset.view=b.dataset.view;document.querySelectorAll('button[data-view]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))}));
@@ -230,7 +228,7 @@ function position(){
 function renderRule(){
   if(!active)return;
   $('#pop-title').textContent=active.label||active.raw;$('#pop-en').textContent=active.raw||active.id;
-  $('#pop-text').innerHTML=prose(mode==='summary'?(active.summary||'词典暂缺此项简写。'):(active.full||'词典暂缺此项完整规则。'));
+  $('#pop-text').innerHTML=prose(active.source==='unresolved'?(active.raw||active.label):mode==='summary'?(active.summary||active.full||active.raw):(active.full||active.summary||active.raw));
   $('#pop-timing').innerHTML=timings(active).map(timingBadge).join('');
   const sources=active.upgradeSources||[];
   $('#pop-upgrades').hidden=!sources.length;

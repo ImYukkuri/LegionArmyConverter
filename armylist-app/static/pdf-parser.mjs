@@ -9,12 +9,31 @@ const hash=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',
 let catalogPromise;
 export function getCatalog(){return catalogPromise??=fetch(new URL('./catalog.json',import.meta.url)).then(async r=>{if(!r.ok)throw new Error('中文映射加载失败，请检查完整部署目录。');return r.json()}).catch(e=>{catalogPromise=null;throw e})}
 export function splitKeywords(text){
-  const result=[];
-  for(const part of text.split(',')){
+  const result=[],parts=[];let start=0,depth=0;for(let i=0;i<text.length;i++){const c=text[i];if('(['.includes(c))depth++;else if(')]'.includes(c))depth=Math.max(0,depth-1);else if(c===','&&depth===0){parts.push(text.slice(start,i));start=i+1}}parts.push(text.slice(start));
+  for(const part of parts){
     const c=part.trim();if(!c)continue;const previous=result.at(-1)||'';
-    if(previous.startsWith('Mercenary')&&['Empire','Rebels','Republic','Separatists'].includes(c)||previous.startsWith('Equip ')&&['Hunter','Wrecker','Echo','Tech','Crosshair','Omega'].includes(c))result[result.length-1]+=', '+c;
+    if(/^Mercenary(?:\s|:)/i.test(previous)&&['Empire','Rebels','Republic','Separatists'].includes(c)||/^Equip(?:\s|:)/i.test(previous)&&['Armament','Doctrine','Hunter','Wrecker','Echo','Tech','Crosshair','Omega'].includes(c))result[result.length-1]+=', '+c;
     else result.push(c);
   }return result;
+}
+export const PARAMETER_RULES={'Direct':['direct','unit'],'Entourage':['entourage','unit'],'Retinue':['retinue','unit'],
+  'Detachment':['detachment','unit'],'Associate':['associate','unit'],'Teamwork':['teamwork','unit'],
+  'Coordinate':['coordinate','unit'],'Aid':['aid','unit'],'Compel':['compel','unit'],
+  'Equip':['equip','equipment'],'Mercenary':['mercenary','faction'],'Independent':['independent','token'],
+  'Hover':['hover_ground','mode'],'Fixed':['fixed_front','arc'],'Sidearm':['sidearm','mode'],
+  'AI':['ai','action'],'Advanced Targeting':['advanced_targeting','unit'],'Eyes on the Prize':['eyes_on_the_prize','keyword']};
+export function keywordParameter(raw){
+  for(const [prefix,[id,parameterKind]]of Object.entries(PARAMETER_RULES)){
+    const match=raw.trim().match(new RegExp('^'+prefix+'(?:\\s*[:：]\\s*|\\s+)(.+)$','i'));
+    if(match)return {id,parameter:match[1].trim(),parameterKind};
+  }return null;
+}
+const parameterLabel=(heading,value)=>heading.split(/[:：]/)[0].trim()+'：'+value;
+const DISPLAY_HEADINGS={one_step_ahead:'领先一步',immune_range_1_weapons:'免疫：射程1武器'};
+function normalizeCardParameters(card,catalog){
+  const byRule=Object.fromEntries(catalog.keywords.map(k=>[k.identifier,k]));
+  for(const group of [card,...(card.weapons||[])])for(const k of group.zh?.keywords||[]){const parameter=keywordParameter(k.raw||k.label||'');if(parameter){const item=byRule[parameter.id]||catalog.supplement[parameter.id];if(item)Object.assign(k,parameter,{ruleId:parameter.id,label:parameterLabel(item.rulebook_heading,parameter.parameter)})}}
+  return card;
 }
 function lines(items){
   const rows=[];
@@ -133,18 +152,19 @@ export function normalizeGroupPoints(units,diagnostics){
   }
 }
 export function resolveKeyword(raw,catalog,glossary={}){
+  const parameter=keywordParameter(raw);
   const {display:terms,aliases,supplement}=catalog,byRule=Object.fromEntries(catalog.keywords.map(k=>[k.identifier,k]));
-  let base=raw.replace(/\s+\d+$/,'').trim();for(const p of ['Mercenary','Independent','Equip'])if(raw.startsWith(p))base=p;
+  let base=raw.replace(/\s+\d+$/,'').trim();
   const direct=/^Direct(?:\s|:|$)/i.test(raw);if(direct)base='Direct';
   const parameterized=raw.match(/^(Arm|Detonate)\s+(?:\d+|X)(?:\s*:|$)/i);if(parameterized)base=parameterized[1];
-  const normalized=norm(base).replace(/_x$/,''),key=aliases[normalized]||normalized,item=byRule[key]||supplement[key];
-  if(item){let label=item.rulebook_heading.replace('完 成 任 务','完成任务'),m=raw.match(/\s+(\d+)$/);if(m)label=label.replaceAll('X',m[1]);
-    if(direct)label=raw;
+  const normalized=norm(base).replace(/_x$/,''),key=parameter?.id||aliases[normalized]||normalized,item=byRule[key]||supplement[key];
+  if(item){let label=(DISPLAY_HEADINGS[key]||item.rulebook_heading).replace('完 成 任 务','完成任务'),m=raw.match(/\s+(\d+)$/);if(m)label=label.replaceAll('X',m[1]);
+    if(parameter)label=parameterLabel(item.rulebook_heading,parameter.parameter);
     else if(['arm','detonate'].includes(key)){
       const p=raw.match(/^(?:Arm|Detonate)\s+(\d+|X)(?:\s*:\s*(.+))?$/i);if(p)label=item.rulebook_heading.split('：')[0].replaceAll('X',p[1])+(p[2]?'：'+p[2]:'');
     }
-    if(['Mercenary','Independent','Equip'].includes(base)){let extra=raw.slice(base.length).replace(/^[ :]+|[ :]+$/g,'');for(const [en,zh]of Object.entries(terms).sort((a,b)=>b[0].length-a[0].length))extra=extra.split(en).join(zh);extra=extra.replaceAll(' and ','及').replaceAll(' or ','或');label=label.split(/：|X/)[0]+(extra?'：'+extra:'')}
-    return {raw,id:key,label,summary:item.summary,full:item.rulebook_quote,timing:item.timing,source:byRule[key]?'reviewed_dictionary':'local_supplement'};
+    if(!parameter&&['Mercenary','Independent','Equip'].includes(base)){let extra=raw.slice(base.length).replace(/^[ :]+|[ :]+$/g,'');for(const [en,zh]of Object.entries(terms).sort((a,b)=>b[0].length-a[0].length))extra=extra.split(en).join(zh);extra=extra.replaceAll(' and ','及').replaceAll(' or ','或');label=label.split(/：|X/)[0]+(extra?'：'+extra:'')}
+    return {raw,id:key,label,summary:item.summary,full:item.rulebook_quote,timing:item.timing,source:byRule[key]?'reviewed_dictionary':'local_supplement',...(parameter||{})};
   }
   const quote=glossary[key]||'';return {raw,id:key,label:terms[raw]||raw,summary:quote||'此词条暂缺规则文本。',full:quote||'此词条暂缺规则文本。',timing:[],source:quote?'pdf_glossary':'unresolved'};
 }
@@ -194,7 +214,7 @@ export function resolveUpgrade(name,u,catalog,diagnostics=[]){
     if(restricted.length===1)candidates=restricted;else{const scoped=candidates.filter(c=>c.names.some(r=>norm(r).includes(norm(base))));if(scoped.length===1)candidates=scoped}
   }
   if(candidates.length!==1&&base==='The Bad Batch'){const id={Echo:'echo-bb',Crosshair:'crosshair',Hunter:'hunter',Tech:'tech',Wrecker:'wrecker'}[name],chosen=upgrades.find(c=>c.id===id);if(chosen)candidates=[chosen]}
-  if(candidates.length===1)return {...clone(candidates[0]),match:'local_catalog'};
+  if(candidates.length===1)return normalizeCardParameters({...clone(candidates[0]),match:'local_catalog'},catalog);
   diagnostics.push({level:'warning',code:'upgrade_unresolved',unitId:u.id,message:`升级卡“${name}”未能唯一匹配，保留英文。`,candidates:candidates.map(c=>c.id)});return {name,zh:{name:terms[name]||name},match:'unresolved'};
 }
 function enrich(army,catalog){
@@ -203,7 +223,7 @@ function enrich(army,catalog){
   const keyword=raw=>resolveKeyword(raw,catalog,army.pdfGlossary);
   for(const u of army.units){
     u.zh={name:display(u.name),subtitle:display(u.subtitle)};
-    u.upgrades=u.upgrades.map(name=>resolveUpgrade(name,u,{display:terms,upgrades},army.diagnostics));
+    u.upgrades=u.upgrades.map(name=>resolveUpgrade(name,u,catalog,army.diagnostics));
     u.keywords=u.keywords.map(keyword);u.fromUpgrades=u.fromUpgrades.map(keyword);
     for(const w of u.weapons){w.zh={name:display(w.name)};w.keywords=w.keywords.map(keyword)}
   }
@@ -220,18 +240,22 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
   try{
     if(doc.numPages>50)throw new Error('当前仅支持50页以内的军表。');
     const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
+    let previousGlossary=false,glossaryFont;
     for(let n=1;n<=doc.numPages;n++){
       onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const pdfPage=await doc.getPage(n);let geo;
       try{geo=await pageGeometry(pdfPage)}catch(error){
         const content=await pdfPage.getTextContent().catch(()=>({items:[]}));army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
       }
       const text=geo.items.map(t=>t.text).join(' ');
+      glossaryFont=geo.items.find(t=>t.text.includes('Keyword Glossary'))?.font||glossaryFont;
+      const glossaryColumns=[[0,geo.width/2],[geo.width/2,geo.width]].map(([x0,x1])=>lines(geo.items.filter(t=>t.x>=x0&&t.x<x1)));
+      const isHeading=row=>{const prefix=row.items.filter(t=>t.font===glossaryFont).map(t=>t.text).join('');return prefix.includes('.')&&prefix.length>2};
+      const isGlossary=text.includes('Keyword Glossary')||previousGlossary&&glossaryColumns.flat().filter(isHeading).length>=2&&!geo.items.some(t=>t.text==='Mini')&&!text.includes('COMMAND CARDS');previousGlossary=isGlossary;
       if(n===1)army.title=textIn(geo.items,[0,0,geo.width,30])||army.title;
       if(text.includes('COMMAND CARDS')){
         for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}
-      }else if(text.includes('Keyword Glossary')){
-        const bold=geo.items.find(t=>t.text.includes('Keyword Glossary'))?.font;
-        for(const [x0,x1]of [[0,geo.width/2],[geo.width/2,geo.width]]){let current=null;for(const row of lines(geo.items.filter(t=>t.x>=x0&&t.x<x1))){const prefix=row.items.filter(t=>t.font===bold).map(t=>t.text).join('');if(prefix.includes('.')&&prefix.length>2){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
+      }else if(isGlossary){
+        for(const column of glossaryColumns){let current=null;for(const row of column){if(isHeading(row)){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
       }else{
         const before=army.units.length,reviewBefore=army.reviewItems.length;
         for(const box of geo.panels.filter(b=>b[3]-b[1]>100)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}

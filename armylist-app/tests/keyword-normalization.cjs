@@ -9,13 +9,13 @@ const cases=['Direct Vehicle','Direct Empire Unit','Direct: Clone Trooper','Dire
     const page=await b.newPage({viewport:{width:1280,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.routeWebSocket(/\/ws$/,w=>w.close());await page.goto(base);
     const browser=await page.evaluate(async cases=>{const m=await import('./pdf-parser.mjs'),c=await m.getCatalog();return cases.map(s=>m.resolveKeyword(s,c))},cases);
     assert.deepEqual(browser,python,'Python and browser normalization must agree');
-    for(let i=0;i<5;i++){assert.equal(browser[i].id,'direct');assert.equal(browser[i].label,cases[i]);assert.deepEqual(browser[i].timing,['command'])}
+    for(let i=0;i<5;i++){assert.equal(browser[i].id,'direct');assert.equal(browser[i].label,i===3?'传令：单位名称/单位类型':'传令：'+cases[i].replace(/^Direct\s*:?\s*/i,''));assert.deepEqual(browser[i].timing,['command'])}
     assert.equal(browser[5].label,'反器材2');assert.equal(browser[6].label,'反器材2');assert.equal(browser[7].label,'反器材X');assert.deepEqual(browser[5].timing,['attack']);
     assert.equal(browser[9].label,'反人员3');assert.equal(browser[11].id,'area_weapon');assert.equal(browser[12].label,'安设2：Test Charge');assert.equal(browser[13].label,'突击1');
     assert.notEqual(browser[14].id,'direct');assert.notEqual(browser[15].id,'direct');
     const catalog=await page.evaluate(async()=>await(await fetch('catalog.json')).json());
-    const tank=catalog.upgrades.find(c=>c.id==='tank-hunting-munitions'),direct=catalog.upgrades.find(c=>c.id==='optimized-task-flow');
-    assert.equal(tank.zh.keywords.find(k=>k.ruleId==='anti_materiel').label,'反器材X');assert.equal(direct.zh.keywords[0].label,'Direct AI Unit');
+    const tank=catalog.upgrades.find(c=>c.id==='tank-hunting-munitions'),direct=await page.evaluate(async()=>{const m=await import('./pdf-parser.mjs');return m.resolveUpgrade('Optimized Task Flow',{id:'test',name:'Test Unit'},await m.getCatalog())});
+    assert.equal(tank.zh.keywords.find(k=>k.ruleId==='anti_materiel').label,'反器材X');assert.equal(direct.zh.keywords[0].label,'传令：AI Unit');
     const data={schema:'legion-army/v2',title:'Layout test',source:{pdf:'user.pdf'},units:[{id:'u1',name:'Test Unit',zh:{name:'测试单位'},rank:'Corps',points:1,stats:{},keywords:[browser[0],browser[1],browser[5]],fromUpgrades:[browser[7]],upgrades:[tank,direct],provenance:{page:1},weapons:[{name:'Test weapon',zh:{name:'测试武器'},range:'1-3',dice:'1R',keywords:[browser[5]]}]}],commandCards:[],totals:{pdfPoints:1},diagnostics:[]};
     data.units[0].weapons[0].keywords.push(browser[6],browser[7]);
     await page.goto(new URL('roster.html',base).href);await page.locator('#import-json').setInputFiles({name:'test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});await page.locator('#u1 > summary').click();

@@ -8,17 +8,26 @@ from catalog import enrich,norm
 
 VERSION='legion-hq-stat-reference/v2.2'
 def clean(s):return re.sub(r'\s+',' ',s or '').strip()
+def comma_parts(text):
+    parts=[];start=0;depth=0
+    for i,c in enumerate(text):
+        if c in '([':depth+=1
+        elif c in ')]':depth=max(0,depth-1)
+        elif c==','and depth==0:parts.append(text[start:i]);start=i+1
+    return parts+[text[start:]]
 def bounds(page,min_height):
     return sorted(set(tuple(round(c[k],3)for k in ('x0','top','x1','bottom'))for c in page.curves
                       if c['width']>page.width*.4 and c['height']>min_height),key=lambda b:(b[1],b[0]))
 def split_keywords(text):
     result=[]
-    for chunk in text.split(','):
+    for chunk in comma_parts(text):
         chunk=chunk.strip()
         if not chunk:continue
-        if result and result[-1].startswith('Mercenary')and chunk in ('Empire','Rebels','Republic','Separatists'):
+        if result and re.match(r'^Mercenary(?:\s|:)',result[-1],re.I)and chunk in ('Empire','Rebels','Republic','Separatists'):
             result[-1]+=', '+chunk
         elif result and result[-1].startswith('Equip ')and chunk in ('Hunter','Wrecker','Echo','Tech','Crosshair','Omega'):
+            result[-1]+=', '+chunk
+        elif result and re.match(r'^Equip(?:\s|:)',result[-1],re.I)and chunk in ('Armament','Doctrine','Hunter','Wrecker','Echo','Tech','Crosshair','Omega'):
             result[-1]+=', '+chunk
         else:result.append(chunk)
     return result
@@ -152,22 +161,28 @@ def parse_pdf(content,filename):
     with pdfplumber.open(io.BytesIO(content))as doc:
         if len(doc.pages)>50:raise ValueError('当前仅支持50页以内的军表。')
         army['source']['pageCount']=len(doc.pages)
+        previous_glossary=False
         for number,page in enumerate(doc.pages,1):
             text=page.extract_text()or ''
+            columns=[page.crop((x0,0,x1,page.height)).extract_text_lines(return_chars=True)for x0,x1 in ((0,page.width/2),(page.width/2,page.width))]
+            def heading(line):
+                prefix=''
+                for c in line['chars']:
+                    if 'Bold'not in c['fontname']:break
+                    prefix+=c['text']
+                return '.'in prefix and len(prefix)>2
+            is_glossary='Keyword Glossary'in text or previous_glossary and sum(heading(line)for col in columns for line in col)>=2 and 'Mini'not in text and 'COMMAND CARDS'not in text
+            previous_glossary=is_glossary
             if number==1:army['title']=clean(page.crop((0,0,page.width,30)).extract_text())or army['title']
             if 'COMMAND CARDS'in text:
                 for box in bounds(page,30):
                     card=command_panel(page,box,number,len(army['commandCards'])+1)
                     if card:army['commandCards'].append(card)
-            elif 'Keyword Glossary'in text:
-                for x0,x1 in ((0,page.width/2),(page.width/2,page.width)):
-                    col=page.crop((x0,0,x1,page.height));current=None
-                    for line in col.extract_text_lines(return_chars=True):
-                        chars=line['chars'];prefix=''
-                        for c in chars:
-                            if 'Bold'not in c['fontname']:break
-                            prefix+=c['text']
-                        if '.'in prefix and len(prefix)>2:
+            elif is_glossary:
+                for col in columns:
+                    current=None
+                    for line in col:
+                        if heading(line):
                             label=line['text'].split('.',1)[0];current=norm(label)
                             army['pdfGlossary'][current]=line['text'].split('.',1)[1].strip()
                         elif current:army['pdfGlossary'][current]+=' '+line['text']
