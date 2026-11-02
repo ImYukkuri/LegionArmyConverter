@@ -1,0 +1,13 @@
+{
+  "name": "legion-army-converter",
+  "private": true,
+  "scripts": {
+    "build": "python armylist-app/build_site.py",
+    "start": "python armylist-app/server.py",
+    "audit:public": "python tools/public_audit.py",
+    "hooks:install": "git config core.hooksPath .githooks"
+  },
+  "dependencies": {
+    "pdfjs-dist": "5.4.624"
+  }
+}

@@ -1,0 +1,2 @@
+#!/bin/sh
+python tools/public_audit.py --staged --history

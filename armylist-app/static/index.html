@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="legion-site" content="source"><title>军表工坊 · PDF 转中文军表</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="workspace entry">
+<header class="brand"><a href="index.html">LEGION / 军表工坊</a><span>静态网站 · 中英双语</span></header>
+<div class="hero"><div class="eyebrow">FROM PDF TO PLAY</div><h1>把军表，变成你的速查手册。</h1><p>导入 Legion HQ 属性表 PDF，提取结构化数据，生成清楚、可展开的中文军表。</p></div>
+<ol class="steps"><li class="active"><b>01</b> 导入 PDF</li><li><b>02</b> 生成 JSON</li><li><b>03</b> 阅读中文军表</li></ol>
+<section class="upload-panel"><div class="upload-mark" aria-hidden="true">↥</div><h2>选择一份军表 PDF</h2><p>支持带文字层的 Legion HQ Stat Reference 格式，最多 25 MB。</p><label class="file-button" for="pdf-file">选择 PDF 文件</label><input id="pdf-file" type="file" accept="application/pdf,.pdf" class="sr-only"><div id="selected-file" class="muted">也可以把 PDF 拖到这里</div><button id="parse" class="primary" disabled>提取军表数据</button></section>
+<div class="samples"><label for="json-file" class="link-button">导入先前生成的军表 JSON（可选）</label><input id="json-file" type="file" accept="application/json,.json" class="sr-only"></div>
+<p id="status" role="status" aria-live="polite"></p>
+<section id="local-setup" class="result" hidden><h2>本地部署准备</h2><p>在包含 package.json 的项目根目录运行：</p><pre>npm ci --ignore-scripts
+npm run build</pre><p>在 VS Code 中右键 <code>dist/index.html</code>，选择 <strong>Open with Live Server</strong>。若 Live Server 的根目录是整个项目，地址为 <code>http://127.0.0.1:5500/dist/index.html</code>；若根目录设为 dist，则为 <code>http://127.0.0.1:5500/</code>。</p><p>需要 Node.js 22+ 和 Python 3.10+；纯静态构建无需安装 Python PDF 解析依赖。修改源码或卡库后重新执行 <code>npm run build</code>。</p><p><a href="index.html">准备完成，重新检查入口 →</a></p></section>
+<section id="result" class="result" hidden><div class="section-heading"><div><div class="eyebrow">READY TO READ</div><h2>军表数据已就绪</h2></div><span id="source-name" class="muted"></span></div><div class="metrics" id="metrics"></div><div class="actions"><button id="preview" class="primary">打开中文军表 →</button><button id="download-json" class="secondary">下载 JSON</button><button id="download-html" class="secondary">下载离线 HTML</button></div><details class="diagnostics"><summary id="diagnostics-title">解析记录</summary><ul id="diagnostics"></ul></details><details class="json-preview"><summary>查看结构化 JSON</summary><pre id="json-preview"></pre></details></section>
+<footer><strong>独立的军表格式化工具</strong><p id="catalog-status">正在载入必要运行映射…</p><p>只需选择军表PDF，文件在浏览器内解析，不上传服务器。本站不提供原始卡图、规则PDF或OCR素材。映射含社区译文及规则引用，不是官方授权规则来源。相关商标、游戏内容归各自权利人所有，本站与权利人无隶属关系。</p></footer>
+</main><script src="boot.js"></script></body></html>
