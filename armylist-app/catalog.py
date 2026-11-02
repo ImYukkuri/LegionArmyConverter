@@ -10,6 +10,7 @@ def load_json(path):return json.loads(path.read_text(encoding='utf8'))
 KEYWORDS=load_json(ROOT/'keyword/legion_keyword_dictionary_summary_reviewed.json')
 UPGRADES=load_json(ROOT/'upgradecards/upgrades-slim.json')['cards']
 COMMANDS=load_json(ROOT/'tacticalcards/tactical-cards.bilingual.json')['cards']
+UNIT_NAMES=load_json(ROOT/'mappings/unit-names.zh.json')['units']
 ALIASES={'mandalorians_are_stronger_together':'mandalorian_are_stronger_together',
          'we_re_not_regs':'were_not_regs','we_are_not_regs':'were_not_regs','prepared_positions':'prepared_position',
          'anti_material':'anti_materiel','fixed':'fixed_front','hover':'hover_ground'}
@@ -51,6 +52,25 @@ for card in UPGRADES:
     if card.get('zh'):
         DISPLAY.setdefault(card['name'],card['zh']['name'])
         for en,zh in zip(card['weapons'],card['zh']['weapons']):DISPLAY.setdefault(en['name'],zh['name'])
+
+# Publish only unambiguous global labels; unit/weapon context is resolved below.
+name_values={}
+for unit in UNIT_NAMES:
+    for pair in [unit['name'],unit['title'],*unit['weapons']]:
+        if pair['en']and pair['zh']:name_values.setdefault(pair['en'],set()).add(pair['zh'])
+for en,values in name_values.items():
+    if len(values)==1:DISPLAY[en]=next(iter(values))
+
+def unit_labels(name,subtitle='',weapon=None):
+    base=unit_basename(name);choices=[u for u in UNIT_NAMES if norm(u['name']['en'])==norm(base)]
+    exact=[u for u in choices if norm(u['title']['en'])==norm(subtitle)]
+    if exact:choices=exact
+    def unique(pairs,fallback):
+        values={p['zh']for p in pairs if p['zh']}
+        return next(iter(values))if len(values)==1 else display(fallback)
+    if weapon is not None:return unique([w for u in choices for w in u['weapons']if norm(w['en'])==norm(weapon)],weapon)
+    return {'name':unique([u['name']for u in choices],base)+name[len(base):],
+            'subtitle':unique([u['title']for u in exact],subtitle)if exact else display(subtitle)}
 
 def display(s):
     if not s:return ''
@@ -177,16 +197,16 @@ def enrich(army):
     diagnostics=army['diagnostics']
     glossary=army.get('pdfGlossary',{})
     for unit in army['units']:
-        unit['zh']={'name':display(unit['name']),'subtitle':display(unit['subtitle'])}
+        unit['zh']=unit_labels(unit['name'],unit['subtitle'])
         unit['upgrades']=[upgrade(name,unit,diagnostics)for name in unit['upgrades']]
         unit['keywords']=[keyword(k,glossary)for k in unit['keywords']]
         unit['fromUpgrades']=[keyword(k,glossary)for k in unit['fromUpgrades']]
         for w in unit['weapons']:
-            w['zh']={'name':display(w['name'])}
+            w['zh']={'name':unit_labels(unit['name'],unit['subtitle'],w['name'])}
             w['keywords']=[keyword(k,glossary)for k in w['keywords']]
     army['commandCards']=[command(c,diagnostics)for c in army['commandCards']]
     army['catalogVersions']={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()for p in
-                             [ROOT/'keyword/legion_keyword_dictionary_summary_reviewed.json',ROOT/'keyword/legion_keyword_dictionary_supplement_zh.json',ROOT/'upgradecards/upgrades-slim.json',ROOT/'tacticalcards/tactical-cards.bilingual.json',ROOT/'keyword/tactical_keyword_supplement_zh.json']}
+                             [ROOT/'keyword/legion_keyword_dictionary_summary_reviewed.json',ROOT/'keyword/legion_keyword_dictionary_supplement_zh.json',ROOT/'upgradecards/upgrades-slim.json',ROOT/'tacticalcards/tactical-cards.bilingual.json',ROOT/'keyword/tactical_keyword_supplement_zh.json',ROOT/'mappings/unit-names.zh.json']}
     for u in army['units']:
         u['isCounterpart']=u.get('subtitle','').lower()=='counterpart'
         u['countedPoints']=0 if u['isCounterpart']else u['points']

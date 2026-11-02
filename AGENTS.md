@@ -1,7 +1,8 @@
 # Publication boundaries
 
-Keep this repository to reviewed runtime code, five explicitly approved mapping
-JSON files and the MIT-licensed symbol font with its notices. The user uploads
+Keep this repository to reviewed runtime code, five approved game mapping JSON
+files, the explicitly requested names-only unit mapping, and the MIT-licensed
+symbol font with its notices. The user uploads
 only an army PDF; do not add a separate catalog-upload requirement.
 
 Never commit or publish source PDFs, official card art, OCR output, screenshots,

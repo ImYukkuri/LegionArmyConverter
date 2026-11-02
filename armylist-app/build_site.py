@@ -4,7 +4,7 @@ import hashlib
 import json
 import shutil
 from pathlib import Path
-from catalog import ROOT, KEYWORDS, SUPPLEMENT, UPGRADES, COMMANDS, DISPLAY, ALIASES
+from catalog import ROOT, KEYWORDS, SUPPLEMENT, UPGRADES, COMMANDS, DISPLAY, ALIASES, UNIT_NAMES
 
 APP=Path(__file__).resolve().parent
 STATIC_FILES=('index.html','boot.js','entry.js','pdf-parser.mjs','review.js','roster.html','roster.js','style.css')
@@ -31,8 +31,8 @@ def build(output):
         shutil.copytree(pdfjs/folder,vendor/folder,dirs_exist_ok=True)
     shutil.copy2(pdfjs/'LICENSE',vendor/'LICENSE')
     paths=['keyword/legion_keyword_dictionary_summary_reviewed.json','keyword/legion_keyword_dictionary_supplement_zh.json',
-           'upgradecards/upgrades-slim.json','tacticalcards/tactical-cards.bilingual.json','keyword/tactical_keyword_supplement_zh.json']
-    catalog={'keywords':KEYWORDS,'supplement':SUPPLEMENT,'upgrades':UPGRADES,'commands':COMMANDS,'display':DISPLAY,'aliases':ALIASES,
+           'upgradecards/upgrades-slim.json','tacticalcards/tactical-cards.bilingual.json','keyword/tactical_keyword_supplement_zh.json','mappings/unit-names.zh.json']
+    catalog={'keywords':KEYWORDS,'supplement':SUPPLEMENT,'upgrades':UPGRADES,'commands':COMMANDS,'display':DISPLAY,'aliases':ALIASES,'unitNames':UNIT_NAMES,
              'versions':{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest()for p in paths}}
     (output/'catalog.json').write_text(json.dumps(catalog,ensure_ascii=False,separators=(',',':')),encoding='utf8')
     (output/'.nojekyll').touch()

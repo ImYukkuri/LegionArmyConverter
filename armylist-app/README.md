@@ -4,8 +4,14 @@ Parsing changes follow ../docs/PARSING_CONTRACT.md.
 
 From the repository root, run `npm ci --ignore-scripts` and `npm run build`.
 Serve dist with any HTTP server, including VS Code Live Server.
-The site automatically loads the five reviewed runtime mappings; users provide
+The site automatically loads the five game mappings and the reviewed unit-name
+mapping; users provide
 only their army PDF. No source PDFs or card images are included.
+
+Unit/name/title/weapon translation sources and maintenance are documented in
+../docs/UNIT_NAME_MAPPING.md. Upgrade cards have one ready/unavailable button;
+older exhausted/expended/removed browser states migrate to unavailable. Command
+card play states retain their separate game flow.
 
 See ../README.md and ../docs/PUBLICATION.md before publishing.
 

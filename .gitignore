@@ -16,6 +16,7 @@ dist/
 Thumbs.db
 
 # Private references and generated corpora must stay outside the repository.
+temp_ref/
 *.pdf
 *.png
 *.webp

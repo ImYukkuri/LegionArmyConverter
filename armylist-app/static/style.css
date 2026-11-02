@@ -110,6 +110,8 @@ body[data-filter=on] .unit-body{padding-top:1px}
 .card-state-controls button{font-size:11px;border:1px solid #cbd9cf;border-radius:4px;padding:4px 13px;background:white;color:#56705f}
 .card-state-controls button[aria-pressed=true]{background:#336d4c;color:#fff;border-color:#336d4c}
 .play-card[data-play-state=played]{border-left-color:#2e77a5}
+.play-card[data-play-state=unavailable]{border-left-color:#9b685c;background:#faf5f3}
+.play-card[data-play-state=unavailable] .card-state-badge{background:#f7e6e2;border-color:#d9a59a;color:#913b31}
 .play-card[data-play-state=played] .card-state-badge{background:#e5f0fa;border-color:#8fb9da;color:#225d8a}
 .play-card[data-play-state=exhausted]{border-left-color:#ad761d}
 .play-card[data-play-state=exhausted] .card-state-badge{background:#fff1d7;border-color:#d8b677;color:#805512}

@@ -217,15 +217,21 @@ export function resolveUpgrade(name,u,catalog,diagnostics=[]){
   if(candidates.length===1)return normalizeCardParameters({...clone(candidates[0]),match:'local_catalog'},catalog);
   diagnostics.push({level:'warning',code:'upgrade_unresolved',unitId:u.id,message:`升级卡“${name}”未能唯一匹配，保留英文。`,candidates:candidates.map(c=>c.id)});return {name,zh:{name:terms[name]||name},match:'unresolved'};
 }
+export function resolveUnitLabels(name,subtitle='',catalog,weapon=null){
+  const base=name.replace(/\s*\(#\d+\)$/,''),choices=(catalog.unitNames||[]).filter(u=>norm(u.name.en)===norm(base)),exact=choices.filter(u=>norm(u.title.en)===norm(subtitle)),scoped=exact.length?exact:choices;
+  const unique=(pairs,fallback)=>{const values=[...new Set(pairs.map(p=>p.zh).filter(Boolean))];return values.length===1?values[0]:catalog.display[fallback]||fallback};
+  if(weapon!==null)return unique(scoped.flatMap(u=>u.weapons.filter(w=>norm(w.en)===norm(weapon))),weapon);
+  return {name:unique(scoped.map(u=>u.name),base)+name.slice(base.length),subtitle:exact.length?unique(exact.map(u=>u.title),subtitle):catalog.display[subtitle]||subtitle};
+}
 function enrich(army,catalog){
   const {display:terms,upgrades,commands}=catalog;
   const display=s=>{if(!s)return '';const b=s.replace(/\s*\(#\d+\)$/,'');return (terms[b]||b)+s.slice(b.length)};
   const keyword=raw=>resolveKeyword(raw,catalog,army.pdfGlossary);
   for(const u of army.units){
-    u.zh={name:display(u.name),subtitle:display(u.subtitle)};
+    u.zh=resolveUnitLabels(u.name,u.subtitle,catalog);
     u.upgrades=u.upgrades.map(name=>resolveUpgrade(name,u,catalog,army.diagnostics));
     u.keywords=u.keywords.map(keyword);u.fromUpgrades=u.fromUpgrades.map(keyword);
-    for(const w of u.weapons){w.zh={name:display(w.name)};w.keywords=w.keywords.map(keyword)}
+    for(const w of u.weapons){w.zh={name:resolveUnitLabels(u.name,u.subtitle,catalog,w.name)};w.keywords=w.keywords.map(keyword)}
   }
   army.commandCards=army.commandCards.map(c=>resolveCommand(c,{commands},army.diagnostics));
   for(const u of army.units){u.isCounterpart=u.subtitle?.toLowerCase()==='counterpart';u.countedPoints=u.isCounterpart?0:u.points}

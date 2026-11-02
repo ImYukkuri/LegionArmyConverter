@@ -33,7 +33,10 @@ Never replace layout parsing with card-specific or filename-specific guesses.
 6. Resolve upgrades by name and exact required-unit name before substring scope.
    Preserve ambiguity if it is not unique. Enrich catalog keyword references by
    the same parameter display rule without rewriting stored catalogs/card bodies.
-   Unit display names use the explicit DISPLAY lookup shared by both adapters.
+   Unit display names first use mappings/unit-names.zh.json shared by both adapters,
+   matched by English unit name and title. Weapons are scoped to those variants;
+   global lookup contains only unambiguous Chinese names. Legacy DISPLAY entries
+   remain fallback for names not present in the supplied reference PDFs.
    A missing translation preserves the English name; it is not a parsing failure.
    Keep numbered-copy suffixes and original names. Unit-name translations never
    translate unit parameters in Entourage/Direct or change lookup/scoping keys.

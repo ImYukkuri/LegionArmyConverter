@@ -36,11 +36,14 @@
     "armylist-app/tests/parameter-keywords.cjs",
     "armylist-app/tests/public-smoke.cjs",
     "armylist-app/tests/tolerant-import.cjs",
+    "armylist-app/tests/unit-names-and-states.cjs",
     "docs/PUBLICATION.md",
     "docs/PARSING_CONTRACT.md",
+    "docs/UNIT_NAME_MAPPING.md",
     "keyword/legion_keyword_dictionary_summary_reviewed.json",
     "keyword/legion_keyword_dictionary_supplement_zh.json",
     "keyword/tactical_keyword_supplement_zh.json",
+    "mappings/unit-names.zh.json",
     "package-lock.json",
     "package.json",
     "publication-policy.json",
@@ -54,7 +57,8 @@
     "tacticalcards/tactical-cards.bilingual.json": "801a60a87b3baaa346735d7937369ade32ca1ec9acc5502105656bd13ed7205e",
     "keyword/legion_keyword_dictionary_summary_reviewed.json": "8a0ffcf445d29b07ea82afbd76be0254176cea983ee8aede0be6e84a6713623f",
     "keyword/legion_keyword_dictionary_supplement_zh.json": "e22d828091be1bee633b1b56eef0ab8c528009b37a14f298e1b8464be8492e02",
-    "keyword/tactical_keyword_supplement_zh.json": "144dbd67ae56069da6d975b4ba9b415ae91ca1b7fad063148ea43b68b8547633"
+    "keyword/tactical_keyword_supplement_zh.json": "144dbd67ae56069da6d975b4ba9b415ae91ca1b7fad063148ea43b68b8547633",
+    "mappings/unit-names.zh.json": "c94838e4190807e141aa910048340c7e011643c9d366b1f1738e3849038a9978"
   },
   "note": "Retained by explicit project scope; no assertion of copyright authorization. See docs/PUBLICATION.md."
 }

@@ -10,10 +10,10 @@ function prose(text){return esc(text).replace(/\{@icon\.([\w-]+)\}/g,(_,id)=>(['
 
 let army=null,rules=[],filterEnabled=false,selectedTimings=new Set(['attack']),availableTimings=[];
 let normalOpenState=new Set();
-const stateLabels={command:{unplayed:'未打出',played:'打出',spent:'消耗'},upgrade:{ready:'可用',exhausted:'横置',expended:'消耗',removed:'移除'}};
+const stateLabels={command:{unplayed:'未打出',played:'打出',spent:'消耗'},upgrade:{ready:'可用',unavailable:'不可用'}};
 let playStates={},playStorageKey='',playSignature='',storageAvailable=true;
 function cardKey(kind,owner,index,c){return JSON.stringify([kind,owner,index,c.catalogId||c.id||c.name])}
-function currentState(kind,key){const state=playStates[key];return Object.hasOwn(stateLabels[kind],state)?state:Object.keys(stateLabels[kind])[0]}
+function currentState(kind,key){const state=playStates[key];if(kind==='upgrade'&&['exhausted','expended','removed'].includes(state))return 'unavailable';return Object.hasOwn(stateLabels[kind],state)?state:Object.keys(stateLabels[kind])[0]}
 function initCardStates(){
   playStates={};storageAvailable=true;
   playSignature=JSON.stringify([army.source?.sha256,army.units.map(u=>[u.id,u.upgrades.map(c=>c.id||c.name)]),army.commandCards.map(c=>c.catalogId||c.id||c.name)]);
@@ -29,7 +29,7 @@ function syncCardStatus(){
   $('#play-status').textContent=storageAvailable?'状态仅记在此浏览器；不会修改费用、属性或自动移除词条。':'当前浏览器无法保存状态；本页内仍可切换，刷新后可能丢失。';
 }
 function stateBadge(kind,key){return '<button type="button" class="card-state-badge" data-cycle-card title="点击切换卡牌状态" aria-label="当前状态：'+stateLabels[kind][currentState(kind,key)]+'；点击切换">'+stateLabels[kind][currentState(kind,key)]+'</button>'}
-function stateControls(kind,key){return '<div class="card-state-controls" role="group" aria-label="'+(kind==='command'?'战术卡':'升级卡')+'状态">'+Object.entries(stateLabels[kind]).map(([state,label])=>'<button type="button" data-set-state="'+state+'" aria-pressed="'+(state===currentState(kind,key))+'">'+label+'</button>').join('')+'</div>'}
+function stateControls(kind,key){if(kind==='upgrade')return '';return '<div class="card-state-controls" role="group" aria-label="战术卡状态">'+Object.entries(stateLabels[kind]).map(([state,label])=>'<button type="button" data-set-state="'+state+'" aria-pressed="'+(state===currentState(kind,key))+'">'+label+'</button>').join('')+'</div>'}
 function updateCardState(card,next,persist=true){
   const kind=card.dataset.cardKind,key=card.dataset.cardKey;if(!Object.hasOwn(stateLabels[kind],next))return;
   playStates[key]=next;
