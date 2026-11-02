@@ -10,6 +10,7 @@
 <p class="hint">点击单位展开 · 悬停词条预览，点击后固定阅读 · 原英文和 PDF 记录均可追溯</p>
 <p id="play-status" class="play-status" role="status" aria-live="polite"></p>
 <section><div class="section-heading"><h2>单位列表</h2><span class="muted" id="unit-count"></span><button class="link-button" id="expand-all">全部展开</button></div><div class="roster-list" id="units"></div></section>
+<details class="review-panel" id="review-items" open hidden></details>
 <details class="diagnostics"><summary>解析与映射记录</summary><ul id="notes"></ul></details>
 <footer>卡文采用本地中英双语 JSON；词条速查采用已审阅词典。升级效果不再次叠加到 PDF 属性。未匹配内容会保留英文，不补造规则。搭档条目不代表独立激活。</footer>
 <section class="commands-section" id="command-section"><div class="section-heading"><h2 id="command-title" tabindex="-1">战术卡 / 命令卡</h2><span class="muted" id="command-count"></span></div><p class="cards-hint">点击状态标签循环切换，或使用卡内按钮选择。卡文可展开、收起。</p><div class="command-grid" id="commands"></div></section></div>
@@ -23,4 +24,4 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 <!--ARMY_DATA-->
-<script src="roster.js"></script></body></html>
+<script src="review.js"></script><script src="roster.js"></script></body></html>

@@ -55,6 +55,12 @@ async function pageGeometry(page){
 function cellFor(t,rects){
   return rects.filter(b=>inside(t,b)).sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]))[0];
 }
+export function parseUnitSections(tail){
+  const fields={keywords:'',fromUpgrades:'',upgrades:''},labels={'Keywords:':'keywords','From upgrades:':'fromUpgrades','Upgrades:':'upgrades'};
+  const matches=[...tail.matchAll(/Keywords:|From upgrades:|Upgrades:/g)];
+  for(let i=0;i<matches.length;i++)fields[labels[matches[i][0]]]=tail.slice(matches[i].index+matches[i][0].length,matches[i+1]?.index??tail.length).trim();
+  return {keywords:splitKeywords(fields.keywords),fromUpgrades:splitKeywords(fields.fromUpgrades),upgrades:splitKeywords(fields.upgrades)};
+}
 function unitPanel(geo,box,page,index){
   const items=geo.items.filter(t=>inside(t,box)),mini=items.find(t=>t.text==='Mini');if(!mini)return null;
   const statHeads=['Mini','HP','Def','Cor','Spd','Hit Surge','Def Surge'].map(name=>items.find(t=>t.text===name&&Math.abs(t.y-mini.y)<2));
@@ -65,12 +71,12 @@ function unitPanel(geo,box,page,index){
   const points=meta.match(/(\d+)\s*pts/),rank=meta.match(/COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY/);
   if(!points)throw new Error(`第${page}页单位费用缺失。`);
   let [name,subtitle='']=title.split(' — ');if(title.endsWith(' (counterpart)')){name=title.slice(0,-14);subtitle='counterpart'}
-  const wh=items.find(t=>t.text==='Weapon'&&t.y>mini.y),kh=items.find(t=>t.text==='Keywords:'&&t.y>(wh?.y||mini.y));
-  if(!kh)throw new Error(`${name} 缺少 Keywords 字段。`);
+  const wh=items.find(t=>t.text==='Weapon'&&t.y>mini.y),kh=items.find(t=>/^(Keywords:|From upgrades:|Upgrades:)/.test(t.text)&&t.y>(wh?.y||mini.y));
+  const tailTop=kh?kh.y-kh.height:box[3];
   const rows=[statHeads.map(t=>t.text)];
   const values=statHeads.map(t=>{
     const b=cellFor(t,geo.rects);
-    if(!b)throw new Error(`${name} 的属性单元格缺失。`);return textIn(items,[b[0],b[3],b[2],(wh||kh).y-(wh||kh).height]);
+    if(!b)throw new Error(`${name} 的属性单元格缺失。`);return textIn(items,[b[0],b[3],b[2],wh?wh.y-wh.height:tailTop]);
   });rows.push(values);
   const weapons=[];
   if(wh){
@@ -80,7 +86,7 @@ function unitPanel(geo,box,page,index){
   rows.push(weaponHeads.map(t=>t.text));
   const first=columns[0];
   const boundaries=[];
-  for(const b of geo.edges.filter(b=>Math.abs(b[0]-first[0])<1.6&&Math.abs(b[2]-first[2])<1.6&&b[1]>=first[3]-1.6&&b[3]<kh.y-kh.height/2).sort((a,b)=>a[1]-b[1])){
+  for(const b of geo.edges.filter(b=>Math.abs(b[0]-first[0])<1.6&&Math.abs(b[2]-first[2])<1.6&&b[1]>=first[3]-1.6&&b[3]<(kh?kh.y-kh.height/2:box[3])).sort((a,b)=>a[1]-b[1])){
     const y=(b[1]+b[3])/2;if(!boundaries.length||y-boundaries.at(-1)>1.6)boundaries.push(y);
   }
   const weaponRows=boundaries.slice(0,-1).map((y,i)=>[first[0],y,first[2],boundaries[i+1]]);
@@ -92,12 +98,26 @@ function unitPanel(geo,box,page,index){
   }));
   if(!weapons.length)throw new Error(`${name} 没有识别到武器行。`);
   }
-  const tail=textIn(items,[box[0]+4,kh.y-kh.height,box[2]-4,box[3]]),sections=tail.match(/Keywords:\s*(.*?)(?:From upgrades:\s*(.*?))?(?:Upgrades:\s*(.*))?$/);
-  if(!sections)throw new Error(`${name} 缺少 Keywords 字段。`);
+  const tail=textIn(items,[box[0]+4,tailTop,box[2]-4,box[3]]),sections=parseUnitSections(tail);
   return {id:`unit-${index}`,name,subtitle,rank:rank?rank[0][0]+rank[0].slice(1).toLowerCase():null,points:Number(points[1]),
     stats:Object.fromEntries(['mini','hp','defense','courage','speed','attackSurge','defenseSurge'].map((k,i)=>[k,/^\d+$/.test(values[i])?Number(values[i]):values[i]==='—'?null:values[i]])),
-    weapons,keywords:splitKeywords(sections[1]),fromUpgrades:splitKeywords(sections[2]||''),upgrades:splitKeywords(sections[3]||''),
+    weapons,...sections,
     provenance:{page,bbox:box,title,meta,table:rows,tail}};
+}
+export function parseUnitPanel(geo,box,page,index,reviewItems=[]){
+  const items=geo.items.filter(t=>inside(t,box));
+  if(!items.some(t=>t.text==='Mini')&&!/\d+\s*pts/.test(lines(items).map(r=>r.text).join(' '))){
+    if(items.length)reviewItems.push({category:'parsing',code:'panel_unparsed',title:`第 ${page} 页面板`,message:'面板缺少可识别的单位表头与费用，已保留原文。',rawText:lines(items).map(r=>r.text).join('\n'),locations:[{page,context:'未识别面板'}]});return null;
+  }
+  try{return unitPanel(geo,box,page,index)||recoverUnit('未能识别单位属性表。')}
+  catch(error){return recoverUnit(error.message)}
+  function recoverUnit(message){
+    const mini=items.find(t=>t.text==='Mini'),header=items.filter(t=>t.y<(mini?mini.y-mini.height:box[1]+32)),split=box[0]+(box[2]-box[0])*.66;
+    const title=textIn(header,[box[0],box[1],split,box[3]])||`未完整解析的单位 ${index}`,meta=textIn(header,[split,box[1],box[2],box[3]]),points=meta.match(/(\d+)\s*pts/),rank=meta.match(/COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY/);
+    const [name,subtitle='']=title.split(' — '),rawText=lines(items).map(r=>r.text).join('\n'),id=`unit-${index}`,start=rawText.search(/Keywords:|From upgrades:|Upgrades:/),tail=start<0?'':clean(rawText.slice(start));
+    reviewItems.push({category:'parsing',code:'unit_partial',title:name,message,rawText,locations:[{page,unitId:id,unitName:name,context:'单位面板'}]});
+    return {id,name,subtitle,rank:rank?rank[0][0]+rank[0].slice(1).toLowerCase():null,points:points?Number(points[1]):null,stats:{},weapons:[],...parseUnitSections(tail),parseStatus:'partial',provenance:{page,bbox:box,title,meta,tail,rawText}};
+  }
 }
 export function normalizeGroupPoints(units,diagnostics){
   const groups=new Map();
@@ -107,7 +127,7 @@ export function normalizeGroupPoints(units,diagnostics){
     const count=members.length,numbers=members.map(([n])=>n).sort((a,b)=>a-b),prices=new Set(members.map(([,u])=>u.provenance.printedPoints));
     const signatures=new Set(members.map(([,u])=>JSON.stringify(['subtitle','stats','weapons','keywords','fromUpgrades','upgrades'].map(k=>u[k]))));
     const groupPoints=[...prices][0],name=members[0][2],ids=members.map(([,u])=>u.id);
-    if(count<2||numbers.some((n,i)=>n!==i+1)||prices.size!==1||signatures.size!==1||groupPoints%count){diagnostics.push({level:'warning',code:'numbered_points_unresolved',unitIds:ids,message:`${name} 的编号组不完整、配置/标价不同或费用无法整除；暂保留印刷费用，请核对。`});continue}
+    if(count<2||numbers.some((n,i)=>n!==i+1)||prices.size!==1||signatures.size!==1||!Number.isFinite(groupPoints)||members.some(([,u])=>u.parseStatus==='partial')||groupPoints%count){diagnostics.push({level:'warning',code:'numbered_points_unresolved',unitIds:ids,message:`${name} 的编号组不完整、配置/标价不同或费用无法整除；暂保留印刷费用，请核对。`});continue}
     for(const [n,u]of members){u.points=groupPoints/count;u.pointsInterpretation={mode:'numbered_configuration_group',groupName:name,groupPoints,quantity:count,copyNumber:n,unitPoints:u.points,rule:'complete-numbered-identical-configuration/v1'}}
     diagnostics.push({level:'info',code:'group_points_distributed',unitIds:ids,message:`${name}（#1–#${count}）的${groupPoints}分为同配置组合计；已分配为每支${groupPoints/count}分。`});
   }
@@ -145,25 +165,52 @@ export function parseCommandPanel(geo,box,page,index){
   const rawText=ls.map(r=>r.text).join('\n');
   return {id:`command-${index}`,name:pip?first.slice(0,pip.index).trim():first,owner:pip?first.slice(pip.index+pip[0].length).trim():'',pips:pip?Number(pip[1]):null,rawText,pdfDescription:ls.slice(descriptionStart).map(r=>r.text).join('\n'),textQuality:rawText.includes('(no card text available)')?'missing':'extracted-unreviewed',provenance:{page,bbox:box}};
 }
+export function collectReviewItems(army){
+  const grouped=new Map();
+  function add(item){
+    const key=JSON.stringify([item.category,item.code,item.title,item.rawText||'']),found=grouped.get(key);
+    if(!found){grouped.set(key,{...item,locations:[...(item.locations||[])]});return}
+    for(const loc of item.locations||[])if(!found.locations.some(x=>JSON.stringify(x)===JSON.stringify(loc)))found.locations.push(loc);
+  }
+  for(const item of army.reviewItems||[])add(item);
+  function rules(list,loc){for(const k of list||[])if(['unresolved','pdf_glossary'].includes(k.source))add({category:'keyword',code:k.source,title:k.raw||k.label||k.id,message:k.source==='pdf_glossary'?'未匹配中文词典，已显示 PDF 英文释义。':'本地词典与 PDF 词条表均无对应释义，已保留原名。',rawText:k.source==='pdf_glossary'?k.full:k.raw||k.label||k.id,locations:[loc]})}
+  for(const u of army.units){
+    const loc={page:u.provenance.page,unitId:u.id,unitName:u.name,context:'单位词条'};
+    rules(u.keywords,loc);rules(u.fromUpgrades,{...loc,context:'来自升级卡的词条'});
+    for(const w of u.weapons)rules(w.keywords,{...loc,context:'武器：'+w.name});
+    for(const c of u.upgrades){
+      if(c.match==='unresolved')add({category:'upgrade',code:'upgrade_unresolved',title:c.name,message:'未匹配到唯一升级卡；PDF 中的名称、已列出的武器和词条仍保留，不补造卡文。',rawText:c.name,locations:[{...loc,context:'升级卡'}]});
+      rules(c.zh?.keywords,{...loc,context:'升级卡：'+c.name});
+    }
+  }
+  for(const c of army.commandCards){const loc={page:c.provenance.page,context:'战术卡：'+c.name};if(c.match==='unresolved')add({category:'command',code:'command_unresolved',title:c.name,message:'未匹配到唯一战术卡，已保留 PDF 原文。',rawText:c.pdfDescription||c.rawText||c.name,locations:[loc]});rules(c.zh?.keywords||c.keywords,loc)}
+  return [...grouped.values()];
+}
+export function resolveUpgrade(name,u,catalog,diagnostics=[]){
+  const {display:terms,upgrades}=catalog;
+  let candidates=upgrades.filter(c=>[c.name,...c.names].some(n=>norm(n)===norm(name)));const base=u.name.replace(/\s*\(#\d+\)$/,'');
+  if(candidates.length>1){
+    const exact=candidates.filter(c=>(c.requiredUnitNames||[]).some(r=>norm(base)===norm(r))),restricted=exact.length===1?exact:candidates.filter(c=>(c.requiredUnitNames||[]).some(r=>norm(base).includes(norm(r))||norm(r).includes(norm(base))));
+    if(restricted.length===1)candidates=restricted;else{const scoped=candidates.filter(c=>c.names.some(r=>norm(r).includes(norm(base))));if(scoped.length===1)candidates=scoped}
+  }
+  if(candidates.length!==1&&base==='The Bad Batch'){const id={Echo:'echo-bb',Crosshair:'crosshair',Hunter:'hunter',Tech:'tech',Wrecker:'wrecker'}[name],chosen=upgrades.find(c=>c.id===id);if(chosen)candidates=[chosen]}
+  if(candidates.length===1)return {...clone(candidates[0]),match:'local_catalog'};
+  diagnostics.push({level:'warning',code:'upgrade_unresolved',unitId:u.id,message:`升级卡“${name}”未能唯一匹配，保留英文。`,candidates:candidates.map(c=>c.id)});return {name,zh:{name:terms[name]||name},match:'unresolved'};
+}
 function enrich(army,catalog){
   const {display:terms,upgrades,commands}=catalog;
   const display=s=>{if(!s)return '';const b=s.replace(/\s*\(#\d+\)$/,'');return (terms[b]||b)+s.slice(b.length)};
   const keyword=raw=>resolveKeyword(raw,catalog,army.pdfGlossary);
   for(const u of army.units){
     u.zh={name:display(u.name),subtitle:display(u.subtitle)};
-    u.upgrades=u.upgrades.map(name=>{
-      let candidates=upgrades.filter(c=>[c.name,...c.names].some(n=>norm(n)===norm(name)));const base=u.name.replace(/\s*\(#\d+\)$/,'');
-      if(candidates.length>1){const restricted=candidates.filter(c=>(c.requiredUnitNames||[]).some(r=>norm(base).includes(norm(r))||norm(r).includes(norm(base))));if(restricted.length===1)candidates=restricted;else{const scoped=candidates.filter(c=>c.names.some(r=>norm(r).includes(norm(base))));if(scoped.length===1)candidates=scoped}}
-      if(candidates.length!==1&&base==='The Bad Batch'){const id={Echo:'echo-bb',Crosshair:'crosshair',Hunter:'hunter',Tech:'tech',Wrecker:'wrecker'}[name],chosen=upgrades.find(c=>c.id===id);if(chosen)candidates=[chosen]}
-      if(candidates.length===1)return {...clone(candidates[0]),match:'local_catalog'};
-      army.diagnostics.push({level:'warning',code:'upgrade_unresolved',unitId:u.id,message:`升级卡“${name}”未能唯一匹配，保留英文。`,candidates:candidates.map(c=>c.id)});return {name,zh:{name:display(name)},match:'unresolved'};
-    });
+    u.upgrades=u.upgrades.map(name=>resolveUpgrade(name,u,{display:terms,upgrades},army.diagnostics));
     u.keywords=u.keywords.map(keyword);u.fromUpgrades=u.fromUpgrades.map(keyword);
     for(const w of u.weapons){w.zh={name:display(w.name)};w.keywords=w.keywords.map(keyword)}
   }
   army.commandCards=army.commandCards.map(c=>resolveCommand(c,{commands},army.diagnostics));
   for(const u of army.units){u.isCounterpart=u.subtitle?.toLowerCase()==='counterpart';u.countedPoints=u.isCounterpart?0:u.points}
-  army.catalogVersions=catalog.versions;army.totals={entries:army.units.length,pdfPoints:sum(army.units.map(u=>u.countedPoints)),counterpartPointsExcluded:sum(army.units.filter(u=>u.isCounterpart).map(u=>u.points)),printedPointsSum:sum(army.units.map(u=>u.provenance.printedPoints)),weapons:sum(army.units.map(u=>u.weapons.length)),commands:army.commandCards.length};return army;
+  army.reviewItems=collectReviewItems(army);
+  army.catalogVersions=catalog.versions;army.totals={entries:army.units.length,pdfPoints:sum(army.units.map(u=>u.countedPoints)),counterpartPointsExcluded:sum(army.units.filter(u=>u.isCounterpart).map(u=>u.points)),printedPointsSum:sum(army.units.map(u=>u.provenance.printedPoints)),weapons:sum(army.units.map(u=>u.weapons.length)),commands:army.commandCards.length,incomplete:army.reviewItems.some(i=>i.category==='parsing')};return army;
 }
 export async function parsePdf(buffer,filename,onProgress=()=>{}){
   const bytes=new Uint8Array(buffer);if(bytes.length>25*1024*1024)throw new Error('文件超过25MB限制。');
@@ -172,19 +219,28 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
   const doc=await getDocument({data:bytes,cMapUrl:new URL('./vendor/pdfjs/cmaps/',import.meta.url).href,cMapPacked:true,standardFontDataUrl:new URL('./vendor/pdfjs/standard_fonts/',import.meta.url).href,wasmUrl:new URL('./vendor/pdfjs/wasm/',import.meta.url).href,isEvalSupported:false}).promise;
   try{
     if(doc.numPages>50)throw new Error('当前仅支持50页以内的军表。');
-    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v1',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[]};
+    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
     for(let n=1;n<=doc.numPages;n++){
-      onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const geo=await pageGeometry(await doc.getPage(n)),text=geo.items.map(t=>t.text).join(' ');
+      onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const pdfPage=await doc.getPage(n);let geo;
+      try{geo=await pageGeometry(pdfPage)}catch(error){
+        const content=await pdfPage.getTextContent().catch(()=>({items:[]}));army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
+      }
+      const text=geo.items.map(t=>t.text).join(' ');
       if(n===1)army.title=textIn(geo.items,[0,0,geo.width,30])||army.title;
       if(text.includes('COMMAND CARDS')){
         for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}
       }else if(text.includes('Keyword Glossary')){
         const bold=geo.items.find(t=>t.text.includes('Keyword Glossary'))?.font;
         for(const [x0,x1]of [[0,geo.width/2],[geo.width/2,geo.width]]){let current=null;for(const row of lines(geo.items.filter(t=>t.x>=x0&&t.x<x1))){const prefix=row.items.filter(t=>t.font===bold).map(t=>t.text).join('');if(prefix.includes('.')&&prefix.length>2){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
-      }else for(const box of geo.panels.filter(b=>b[3]-b[1]>100)){const u=unitPanel(geo,box,n,army.units.length+1);if(u)army.units.push(u)}
+      }else{
+        const before=army.units.length,reviewBefore=army.reviewItems.length;
+        for(const box of geo.panels.filter(b=>b[3]-b[1]>100)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}
+        if(army.units.length===before&&army.reviewItems.length===reviewBefore)army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'此页未能识别为单位、战术卡或词条表，已保留可提取的文字。',rawText:lines(geo.items).map(r=>r.text).join('\n')||'此页没有可提取的文字，可能为扫描页。',locations:[{page:n,context:'整页'}]});
+      }
     }
     if(!army.units.length)throw new Error('未识别到 Legion HQ 属性表。当前不支持扫描军表或其他导出版式。');
     normalizeGroupPoints(army.units,army.diagnostics);
+    if(army.reviewItems.length)army.diagnostics.push({level:'warning',code:'partial_import',message:'部分面板无法完整解析，已保留可读单位与原文；请查看待核对内容，费用合计可能不完整。'});
     if(!army.commandCards.length)army.diagnostics.push({level:'warning',code:'commands_absent',message:'未识别到文字命令卡面板；军表其他内容仍可使用。'});
     for(const u of army.units)if(u.stats.mini===0)army.diagnostics.push({level:'warning',code:'zero_models',unitId:u.id,message:`${u.name} 的 PDF 模型数为0；按原值保留，未根据升级重新计算。`});
     return enrich(army,catalog);

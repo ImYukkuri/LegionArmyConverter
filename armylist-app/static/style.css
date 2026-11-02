@@ -204,6 +204,12 @@ body[data-filter=on] .play-status{display:none}
 }
 
 /* One compact header height per timing row, including upgrade provenance. */
+.review-panel{margin:20px 0;padding:14px 16px;background:#fff9ec;border:1px solid #ddc995;border-radius:8px;font-size:12px;overflow-wrap:anywhere}
+.review-panel>summary{font-size:14px;font-weight:700;color:#79581c;cursor:pointer}.review-intro{margin:9px 0;color:#6e6248}
+.review-panel .secondary{padding:4px 9px;font-size:11px}.review-group{margin-top:16px}.review-group>h3{font-size:13px;color:#79581c}
+.review-item{padding:10px 0;border-top:1px solid #e9ddc3}.review-item h4{margin:0 0 3px;font-size:13px}.review-item p{color:#6e6248}
+.review-locations{margin:5px 0;padding-left:18px;font-size:11px;color:#776d59}.review-item summary{cursor:pointer}.review-item pre{margin:7px 0;padding:9px;background:#fffdf7;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.7 ui-monospace,monospace}
+.partial-unit-note{margin:0 0 12px;padding:8px 10px;background:#fff4d9;border-radius:5px;color:#79581c;font-size:12px}
 .timing-rule-row{--keyword-height:26px}
 .timing-rule-row[data-has-origins=true]{--keyword-height:36px}
 .timing-rule-row .timing-row-title{height:var(--keyword-height);line-height:16px}

@@ -7,7 +7,7 @@ from pathlib import Path
 from catalog import ROOT, KEYWORDS, SUPPLEMENT, UPGRADES, COMMANDS, DISPLAY, ALIASES
 
 APP=Path(__file__).resolve().parent
-STATIC_FILES=('index.html','boot.js','entry.js','pdf-parser.mjs','roster.html','roster.js','style.css')
+STATIC_FILES=('index.html','boot.js','entry.js','pdf-parser.mjs','review.js','roster.html','roster.js','style.css')
 ASSET_FILES=('legion-icons.ttf','legion-icons-LICENSE.txt','SOURCES.md')
 
 def build(output):

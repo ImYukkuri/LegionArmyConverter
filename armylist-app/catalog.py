@@ -81,7 +81,8 @@ def upgrade(name,unit,diagnostics):
     candidates=[c for c in UPGRADES if norm(name)in {norm(c['name']),*(norm(n)for n in c['names'])}]
     base=unit_basename(unit['name'])
     if len(candidates)>1:
-        restricted=[c for c in candidates if any(norm(base)in norm(r)or norm(r)in norm(base)for r in c.get('requiredUnitNames',[]))]
+        exact=[c for c in candidates if any(norm(base)==norm(r)for r in c.get('requiredUnitNames',[]))]
+        restricted=exact if len(exact)==1 else [c for c in candidates if any(norm(base)in norm(r)or norm(r)in norm(base)for r in c.get('requiredUnitNames',[]))]
         if len(restricted)==1:candidates=restricted
         else:
             scoped=[c for c in candidates if any(norm(base)in norm(r)for r in c.get('names',[]))]
@@ -117,6 +118,36 @@ def command(card,diagnostics):
     diagnostics.append({'level':'warning','code':'command_unresolved','message':f'命令卡“{card["name"]}”尚未唯一匹配，保留 PDF 原文。'})
     return {**card,'zh':{'name':card['name'],'description':card.get('pdfDescription')or card.get('rawText')or ''},'match':'unresolved'}
 
+def collect_review_items(army):
+    grouped={}
+    def add(item):
+        key=json.dumps([item['category'],item['code'],item['title'],item.get('rawText','')],ensure_ascii=False)
+        if key not in grouped:grouped[key]=copy.deepcopy(item);return
+        for loc in item.get('locations',[]):
+            if loc not in grouped[key]['locations']:grouped[key]['locations'].append(loc)
+    for item in army.get('reviewItems',[]):add(item)
+    def rules(items,loc):
+        for k in items or []:
+            if k.get('source')not in ('unresolved','pdf_glossary'):continue
+            title=k.get('raw')or k.get('label')or k.get('id')
+            add({'category':'keyword','code':k['source'],'title':title,
+                 'message':'未匹配中文词典，已显示 PDF 英文释义。'if k['source']=='pdf_glossary'else '本地词典与 PDF 词条表均无对应释义，已保留原名。',
+                 'rawText':k['full']if k['source']=='pdf_glossary'else title,'locations':[loc]})
+    for u in army['units']:
+        loc={'page':u['provenance']['page'],'unitId':u['id'],'unitName':u['name'],'context':'单位词条'}
+        rules(u['keywords'],loc);rules(u['fromUpgrades'],{**loc,'context':'来自升级卡的词条'})
+        for w in u['weapons']:rules(w['keywords'],{**loc,'context':'武器：'+w['name']})
+        for c in u['upgrades']:
+            if c.get('match')=='unresolved':
+                add({'category':'upgrade','code':'upgrade_unresolved','title':c['name'],
+                     'message':'未匹配到唯一升级卡；PDF 中的名称、已列出的武器和词条仍保留，不补造卡文。','rawText':c['name'],'locations':[{**loc,'context':'升级卡'}]})
+            rules(c.get('zh',{}).get('keywords'),{**loc,'context':'升级卡：'+c['name']})
+    for c in army['commandCards']:
+        loc={'page':c['provenance']['page'],'context':'战术卡：'+c['name']}
+        if c.get('match')=='unresolved':add({'category':'command','code':'command_unresolved','title':c['name'],'message':'未匹配到唯一战术卡，已保留 PDF 原文。','rawText':c.get('pdfDescription')or c.get('rawText')or c['name'],'locations':[loc]})
+        rules(c.get('zh',{}).get('keywords')or c.get('keywords'),loc)
+    return list(grouped.values())
+
 def enrich(army):
     diagnostics=army['diagnostics']
     glossary=army.get('pdfGlossary',{})
@@ -134,8 +165,10 @@ def enrich(army):
     for u in army['units']:
         u['isCounterpart']=u.get('subtitle','').lower()=='counterpart'
         u['countedPoints']=0 if u['isCounterpart']else u['points']
-    army['totals']={'entries':len(army['units']),'pdfPoints':sum(u['countedPoints']for u in army['units']),
-                   'counterpartPointsExcluded':sum(u['points']for u in army['units']if u['isCounterpart']),
-                   'printedPointsSum':sum(u['provenance'].get('printedPoints',u['points'])for u in army['units']),
-                   'weapons':sum(len(u['weapons'])for u in army['units']),'commands':len(army['commandCards'])}
+    army['reviewItems']=collect_review_items(army)
+    army['totals']={'entries':len(army['units']),'pdfPoints':sum(u['countedPoints']or 0 for u in army['units']),
+                   'counterpartPointsExcluded':sum(u['points']or 0 for u in army['units']if u['isCounterpart']),
+                   'printedPointsSum':sum(u['provenance'].get('printedPoints',u['points'])or 0 for u in army['units']),
+                   'weapons':sum(len(u['weapons'])for u in army['units']),'commands':len(army['commandCards']),
+                   'incomplete':any(i['category']=='parsing'for i in army['reviewItems'])}
     return army

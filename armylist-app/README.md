@@ -16,3 +16,25 @@ retain the previous first-line interpretation without guessing from a card name.
 The Python and browser adapters implement the same rule; roster rendering remains
 independent. Regression: `node armylist-app/tests/command-header.cjs`.
 Supply an optional external reference using LEGION_HEADER_PDF; never commit PDFs.
+
+Unit tail labels (Keywords, From upgrades, Upgrades) are independent optional
+sections. Exporters omit empty sections; absence means an empty list, not failure.
+Weapon-table boundaries use the first present tail label, or the panel bottom
+when the entire tail is absent. Match required unit names exactly before trying
+substring matches for upgrades with identical names.
+
+A malformed unit panel produces a partial unit with unknown statistics and
+weapons left empty, unknown points null, and its original text kept for review.
+Other units continue parsing. A partially parsed numbered group is not divided.
+Unsupported pages retain extracted text and page numbers; an entirely unsupported
+or scanned PDF still reports that no unit table could be recognized.
+
+Optional reviewItems in legion-army/v2 groups parsing failures and unmatched
+keywords/upgrades/commands. Each item has category, code, title, message, rawText,
+and locations (page, unitId/unitName where relevant, context). Repeated occurrences
+share an item and retain every location. PDF glossary text is used for untranslated
+keywords; absent rules keep the source name without inventing rules or timings.
+totals.incomplete flags structural failures; a missing translation alone does not.
+The entry, roster and offline HTML show the same downloadable review list.
+Regression: `node armylist-app/tests/tolerant-import.cjs`; optional external PDF
+via LEGION_TOLERANT_PDF. No user PDFs or generated reviews belong in the repository.

@@ -6,7 +6,7 @@ import re
 import pdfplumber
 from catalog import enrich,norm
 
-VERSION='legion-hq-stat-reference/v2.1'
+VERSION='legion-hq-stat-reference/v2.2'
 def clean(s):return re.sub(r'\s+',' ',s or '').strip()
 def bounds(page,min_height):
     return sorted(set(tuple(round(c[k],3)for k in ('x0','top','x1','bottom'))for c in page.curves
@@ -22,6 +22,14 @@ def split_keywords(text):
             result[-1]+=', '+chunk
         else:result.append(chunk)
     return result
+
+def parse_unit_sections(tail):
+    fields={'keywords':'','fromUpgrades':'','upgrades':''}
+    labels={'Keywords:':'keywords','From upgrades:':'fromUpgrades','Upgrades:':'upgrades'}
+    matches=list(re.finditer(r'Keywords:|From upgrades:|Upgrades:',tail))
+    for i,match in enumerate(matches):
+        fields[labels[match[0]]]=tail[match.end():matches[i+1].start()if i+1<len(matches)else len(tail)].strip()
+    return {key:split_keywords(value)for key,value in fields.items()}
 
 def normalize_group_points(units,diagnostics):
     """This exporter repeats a configuration's combined price on numbered copies.
@@ -44,7 +52,7 @@ def normalize_group_points(units,diagnostics):
         prices={u['provenance']['printedPoints']for _,u in members}
         count=len(members)
         complete=count>=2 and numbers==list(range(1,count+1))
-        divisible=len(prices)==1 and next(iter(prices))%count==0
+        divisible=len(prices)==1 and isinstance(next(iter(prices)),(int,float))and next(iter(prices))%count==0 and not any(u.get('parseStatus')=='partial'for _,u in members)
         if not complete or len(signatures)!=1 or not divisible:
             diagnostics.append({'level':'warning','code':'numbered_points_unresolved',
                                 'unitIds':[u['id']for _,u in members],
@@ -76,13 +84,37 @@ def unit_panel(page,box,page_no,index):
         wn,distance,dice,kws=row;origin=re.search(r'\s*\(from (.+)\)$',wn)
         weapons.append({'name':wn[:origin.start()]if origin else wn,'source':origin[1]if origin else None,'range':distance,'dice':dice,'keywords':split_keywords(kws)})
     tail=clean(page.crop((box[0]+5,table.bbox[3]+1,box[2]-5,box[3]-3)).extract_text())
-    sections=re.search(r'Keywords:\s*(.*?)(?:From upgrades:\s*(.*?))?(?:Upgrades:\s*(.*))?$',tail)
-    if not sections:raise ValueError(f'{name} 缺少 Keywords 字段。')
+    sections=parse_unit_sections(tail)
     vals=[int(v)if v.isdigit()else None if v=='—'else v for v in rows[1]]
     return {'id':f'unit-{index}','name':name,'subtitle':subtitle,'rank':rank[0].title()if rank else None,'points':int(points[1]),
             'stats':dict(zip(('mini','hp','defense','courage','speed','attackSurge','defenseSurge'),vals)),
-            'weapons':weapons,'keywords':split_keywords(sections[1]),'fromUpgrades':split_keywords(sections[2]or ''),'upgrades':split_keywords(sections[3]or ''),
+            'weapons':weapons,**sections,
             'provenance':{'page':page_no,'bbox':box,'title':title,'meta':meta,'table':rows,'tail':tail}}
+
+def parse_unit_panel(page,box,page_no,index,review_items):
+    panel=page.crop((box[0]+2,box[1]+2,box[2]-2,box[3]-2));raw=panel.extract_text()or ''
+    if not re.search(r'\bMini\b|\d+\s*pts',raw):
+        if raw.strip():review_items.append({'category':'parsing','code':'panel_unparsed','title':f'第 {page_no} 页面板',
+            'message':'面板缺少可识别的单位表头与费用，已保留原文。','rawText':raw,'locations':[{'page':page_no,'context':'未识别面板'}]})
+        return None
+    try:
+        unit=unit_panel(page,box,page_no,index)
+        if unit:return unit
+        message='未能识别单位属性表。'
+    except (ValueError,IndexError,TypeError)as error:message=str(error)
+    mini=next((c for c in panel.extract_words()if c['text']=='Mini'),None)
+    bottom=mini['top']if mini else min(box[3]-2,box[1]+32)
+    split=box[0]+(box[2]-box[0])*.66
+    title=clean(page.crop((box[0]+2,box[1]+2,split,bottom)).extract_text())or f'未完整解析的单位 {index}'
+    meta=clean(page.crop((split,box[1]+2,box[2]-2,bottom)).extract_text())
+    name,subtitle=title.split(' — ',1)if ' — 'in title else (title,'')
+    points=re.search(r'(\d+)\s*pts',meta);rank=re.search(r'COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY',meta)
+    start=re.search(r'Keywords:|From upgrades:|Upgrades:',raw);tail=clean(raw[start.start():])if start else '';uid=f'unit-{index}'
+    review_items.append({'category':'parsing','code':'unit_partial','title':name,'message':message,'rawText':raw,
+                         'locations':[{'page':page_no,'unitId':uid,'unitName':name,'context':'单位面板'}]})
+    return {'id':uid,'name':name,'subtitle':subtitle,'rank':rank[0].title()if rank else None,'points':int(points[1])if points else None,
+            'stats':{},'weapons':[],**parse_unit_sections(tail),'parseStatus':'partial',
+            'provenance':{'page':page_no,'bbox':box,'title':title,'meta':meta,'tail':tail,'rawText':raw}}
 
 def command_panel(page,box,page_no,index):
     panel=page.crop((box[0]+3,box[1]+3,box[2]-3,box[3]-3))
@@ -116,7 +148,7 @@ def command_panel(page,box,page_no,index):
 def parse_pdf(content,filename):
     if not content.startswith(b'%PDF-'):raise ValueError('请选择有效的 PDF 文件。')
     army={'schema':'legion-army/v2','source':{'pdf':filename,'sha256':hashlib.sha256(content).hexdigest(),'parserMode':VERSION},
-          'title':'未命名军表','units':[],'commandCards':[],'pdfGlossary':{},'diagnostics':[]}
+          'title':'未命名军表','units':[],'commandCards':[],'pdfGlossary':{},'diagnostics':[],'reviewItems':[]}
     with pdfplumber.open(io.BytesIO(content))as doc:
         if len(doc.pages)>50:raise ValueError('当前仅支持50页以内的军表。')
         army['source']['pageCount']=len(doc.pages)
@@ -140,12 +172,17 @@ def parse_pdf(content,filename):
                             army['pdfGlossary'][current]=line['text'].split('.',1)[1].strip()
                         elif current:army['pdfGlossary'][current]+=' '+line['text']
             else:
+                before=len(army['units']);review_before=len(army['reviewItems'])
                 for box in bounds(page,100):
-                    unit=unit_panel(page,box,number,len(army['units'])+1)
+                    unit=parse_unit_panel(page,box,number,len(army['units'])+1,army['reviewItems'])
                     if unit:army['units'].append(unit)
+                if len(army['units'])==before and len(army['reviewItems'])==review_before:
+                    army['reviewItems'].append({'category':'parsing','code':'page_unparsed','title':f'第 {number} 页',
+                        'message':'此页未能识别为单位、战术卡或词条表，已保留可提取的文字。','rawText':text or '此页没有可提取的文字，可能为扫描页。','locations':[{'page':number,'context':'整页'}]})
         if not army['units']:raise ValueError('未识别到 Legion HQ 属性表。当前不支持扫描军表或其他导出版式。')
     normalize_group_points(army['units'],army['diagnostics'])
+    if army['reviewItems']:army['diagnostics'].append({'level':'warning','code':'partial_import','message':'部分面板无法完整解析，已保留可读单位与原文；请查看待核对内容，费用合计可能不完整。'})
     if not army['commandCards']:army['diagnostics'].append({'level':'warning','code':'commands_absent','message':'未识别到文字命令卡面板；军表其他内容仍可使用。'})
     for unit in army['units']:
-        if unit['stats']['mini']==0:army['diagnostics'].append({'level':'warning','code':'zero_models','unitId':unit['id'],'message':f'{unit["name"]} 的 PDF 模型数为0；按原值保留，未根据升级重新计算。'})
+        if unit['stats'].get('mini')==0:army['diagnostics'].append({'level':'warning','code':'zero_models','unitId':unit['id'],'message':f'{unit["name"]} 的 PDF 模型数为0；按原值保留，未根据升级重新计算。'})
     return enrich(army)

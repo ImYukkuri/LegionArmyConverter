@@ -41,7 +41,7 @@ def audit(staged=False,dist=False,history=False):
             if name.startswith('vendor/pdfjs/'):
                 if name.split('/')[2]not in vendor_allowed:errors.append(name+': unexpected vendor file')
                 continue
-            permitted={'index.html','boot.js','entry.js','pdf-parser.mjs','roster.html','roster.js','style.css','catalog.json','.nojekyll','assets/legion-icons.ttf','assets/legion-icons-LICENSE.txt','assets/SOURCES.md'}
+            permitted={'index.html','boot.js','entry.js','pdf-parser.mjs','review.js','roster.html','roster.js','style.css','catalog.json','.nojekyll','assets/legion-icons.ttf','assets/legion-icons-LICENSE.txt','assets/SOURCES.md'}
             if name not in permitted:errors.append(name+': unexpected deployment file')
             check_bytes(name,content,errors)
         if total>40*1024*1024:errors.append('dist exceeds 40MiB limit')

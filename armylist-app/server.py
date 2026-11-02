@@ -30,6 +30,7 @@ def export_html(data):
     template=(STATIC/'roster.html').read_text(encoding='utf8')
     return template.replace('<link rel="stylesheet" href="style.css">','<style>'+(STATIC/'style.css').read_text(encoding='utf8')+'</style>')\
                    .replace('<!--ARMY_DATA-->','<script>window.ARMY_DATA='+serialized+';</script>')\
+                   .replace('<script src="review.js"></script>','<script>'+(STATIC/'review.js').read_text(encoding='utf8')+'</script>')\
                    .replace('<script src="roster.js"></script>','<script>'+(STATIC/'roster.js').read_text(encoding='utf8')+'</script>')
 
 class Handler(BaseHTTPRequestHandler):

@@ -147,8 +147,8 @@ function keywordGroup(title,list){
 function unitHtml(u){
   const list=mergedUnitRules(u);
   const groups=sortedRules(list),noMatch=filterEnabled&&!list.some(matchesTiming)&&!u.weapons.some(w=>w.keywords.some(matchesTiming));
-  const points=isCounterpart(u)?'<span class="counterpart-cost" title="PDF标价 '+esc(u.points)+' 分；已计入所属单位，不重复计入总分">伙伴 · 不重复计分</span>':esc(u.points)+' <small>pts</small>';
-  return '<details class="unit" id="'+esc(u.id)+'"><summary>'+unitOverview(u)+'<div class="points">'+(!filterEnabled?points:'')+'</div></summary><div class="unit-body">'+(!filterEnabled?statTable(u.stats):'')+groups+(u.weapons.length?'<div class="group unit-weapons" aria-label="武器">'+weapons(u.weapons,null,{unit:u})+'</div>':'')+(noMatch?'<p class="filter-empty">此单位没有匹配当前时机的词条。</p>':'')+(!filterEnabled&&u.upgrades.length?'<div class="group upgrades-section"><div class="group-label">升级卡 · '+u.upgrades.length+' 张</div>'+u.upgrades.map((c,i)=>upgrade(c,u,i)).join('')+'</div>':'')+(!filterEnabled?'<div class="source detail-only">PDF 第 '+esc(u.provenance.page)+' 页 · '+esc(u.id)+' · '+(isCounterpart(u)?'伙伴费用已计入所属单位；此条不计入总分。':pointsSource(u))+'</div>':'')+'</div></details>';
+  const points=isCounterpart(u)?'<span class="counterpart-cost" title="PDF标价 '+esc(u.points)+' 分；已计入所属单位，不重复计入总分">伙伴 · 不重复计分</span>':esc(u.points??'—')+' <small>pts</small>';
+  return '<details class="unit" id="'+esc(u.id)+'"><summary>'+unitOverview(u)+'<div class="points">'+(!filterEnabled?points:'')+'</div></summary><div class="unit-body">'+(u.parseStatus==='partial'?'<p class="partial-unit-note">此单位仅部分解析，缺失字段显示为 —。请查看下方待核对内容和原始文字。</p>':'')+(!filterEnabled?statTable(u.stats):'')+groups+(u.weapons.length?'<div class="group unit-weapons" aria-label="武器">'+weapons(u.weapons,null,{unit:u})+'</div>':'')+(noMatch?'<p class="filter-empty">此单位没有匹配当前时机的词条。</p>':'')+(!filterEnabled&&u.upgrades.length?'<div class="group upgrades-section"><div class="group-label">升级卡 · '+u.upgrades.length+' 张</div>'+u.upgrades.map((c,i)=>upgrade(c,u,i)).join('')+'</div>':'')+(!filterEnabled?'<div class="source detail-only">PDF 第 '+esc(u.provenance.page)+' 页 · '+esc(u.id)+' · '+(isCounterpart(u)?'伙伴费用已计入所属单位；此条不计入总分。':pointsSource(u))+'</div>':'')+'</div></details>';
 }
 function commandDescription(c){
   const translated=c.zh?.description;
@@ -179,10 +179,11 @@ function load(d){
   initCardStates();
   $('#empty').hidden=true;$('#army').hidden=false;$('#viewer-status').textContent='';
   $('#army-title').textContent=army.title.replace(/\s*[—-]\s*Stat Reference$/,'').replace(/^Untitled$/,'未命名军表');
-  $('#army-source').textContent=army.source.pdf+' · 本地中文映射';$('#points').textContent=army.units.reduce((sum,u)=>sum+(isCounterpart(u)?0:u.points),0);$('#unit-count').textContent=army.units.length+' 个条目（含伙伴，伙伴不重复计分）';
+  $('#army-source').textContent=army.source.pdf+' · 本地中文映射';$('#points').textContent=army.units.reduce((sum,u)=>sum+(isCounterpart(u)?0:u.points||0),0)+(army.totals?.incomplete?'（待核对）':'');$('#unit-count').textContent=army.units.length+' 个条目（含伙伴，伙伴不重复计分）';
   $('#command-count').textContent=army.commandCards.length+' 张';$('#show-commands').textContent='战术卡 · '+army.commandCards.length;
   availableTimings=[...new Set([...Object.keys(timingLabels),...allUnitRules().flatMap(timings)])];
   renderTimingOptions();renderArmy(new Set());
+  LegionReview.render($('#review-items'),army);
   $('#notes').replaceChildren();for(const n of army.diagnostics||[]){const li=document.createElement('li');li.textContent=n.message;$('#notes').append(li)}
   measureToolbar();
 }
