@@ -28,7 +28,7 @@ const base=process.env.STATIC_BASE_URL||'http://127.0.0.1:5500/dist/';
       for(let i=0;i<6;i++)for(const field of ['name','pips','owner','match'])assert.deepEqual(browser[i][field],python[i][field],field+' card '+i);
       const target=browser.find(c=>c.name==='Have I Ever Let You Down?');assert(target);assert.equal(target.pips,2);assert.equal(target.owner,'Republic · Clone Commander Cody');assert.equal(target.match,'local_catalog');assert(!target.pdfDescription.startsWith('pip)'));assert(target.rawText.includes('pip)'));
       await p.locator('#pdf-file').setInputFiles(file);await p.locator('#parse').click();await p.locator('#result').waitFor();await p.locator('#preview').click();
-      const card=p.locator('.command-card').filter({hasText:'Have I Ever Let You Down?'});assert.equal(await card.count(),1);assert.equal(await card.locator('.pips').textContent(),'●●');assert(!(await card.locator('.card-title').innerText()).includes('(2-'));assert((await card.locator('.card-description').innerText()).includes('科迪'));
+      const card=p.locator('.command-card').filter({hasText:'Have I Ever Let You Down?'});await card.waitFor();assert.equal(await card.count(),1);assert.equal(await card.locator('.pips').textContent(),'●●');assert(!(await card.locator('.card-title').innerText()).includes('(2-'));assert((await card.locator('.card-description').innerText()).includes('科迪'));
     }
     assert.deepEqual(errors,[]);console.log('PASS: wrapped pip/title and owner columns; scaled layout; legacy fallback; optional external PDF with Python/browser matching and rendered two pips.');
   }finally{await b.close()}
