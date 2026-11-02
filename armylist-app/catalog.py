@@ -33,6 +33,11 @@ DISPLAY_HEADINGS={'one_step_ahead':'领先一步','immune_range_1_weapons':'免�
 BY_RULE={k['identifier']:k for k in KEYWORDS}
 SUPPLEMENT={k['identifier']:k for path in ('keyword/legion_keyword_dictionary_supplement_zh.json','keyword/tactical_keyword_supplement_zh.json')for k in load_json(ROOT/path)}
 DISPLAY={
+ 'Grand Admiral Thrawn':'索龙元帅','Imperial High Command':'帝国最高统帅部',
+ 'Moff Gideon':'吉迪恩总督','Long Live the Empire':'帝国万岁',
+ 'Mandalorian Hunter':'曼达洛猎人','Mandalorian Initiates':'曼达洛学徒',
+ 'Stormtrooper Riot Squad':'冲锋队防暴小队','Stormtroopers':'冲锋队士兵',
+ 'Imperial Dark Troopers':'帝国黑暗士兵','LAAT/le Patrol Transport':'LAAT/le巡逻运输艇',
  'Bo-Katan Kryze':'博-卡坦·克里兹','Savior of Mandalore':'曼达洛的救星','Din Djarin':'丁·贾林','The Mandalorian':'曼达洛人',
  'Grogu':'格罗古','counterpart':'搭档','Mandalorian Warriors':'曼达洛战士','Super Commandos':'超级突击队',
  'Clone Captain Rex':'克隆人上尉雷克斯','Honorable Soldier':'荣誉士兵','The Bad Batch':'异等小队','Clone Force 99':'克隆人99号部队',

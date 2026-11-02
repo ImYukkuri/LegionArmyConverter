@@ -33,6 +33,10 @@ Never replace layout parsing with card-specific or filename-specific guesses.
 6. Resolve upgrades by name and exact required-unit name before substring scope.
    Preserve ambiguity if it is not unique. Enrich catalog keyword references by
    the same parameter display rule without rewriting stored catalogs/card bodies.
+   Unit display names use the explicit DISPLAY lookup shared by both adapters.
+   A missing translation preserves the English name; it is not a parsing failure.
+   Keep numbered-copy suffixes and original names. Unit-name translations never
+   translate unit parameters in Entourage/Direct or change lookup/scoping keys.
 7. Divide repeated group prices only for complete identical numbered groups.
    Incomplete structural parsing leaves original text and unknown fields; no
    invented zero stats or guessed costs. Unrelated panels continue importing.
