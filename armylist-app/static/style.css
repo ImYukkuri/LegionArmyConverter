@@ -202,3 +202,22 @@ body[data-filter=on] .play-status{display:none}
   .timing-row-label{letter-spacing:0}.timing-rule-row .keyword-name{padding:3px 5px}
   .roster-page .unit>summary{align-items:flex-start}.unit .points{font-size:14px}
 }
+
+/* One compact header height per timing row, including upgrade provenance. */
+.timing-rule-row{--keyword-height:26px}
+.timing-rule-row[data-has-origins=true]{--keyword-height:36px}
+.timing-rule-row .timing-row-title{height:var(--keyword-height);line-height:16px}
+.roster-page .keyword{display:inline-grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:stretch;min-height:26px;vertical-align:top}
+.keyword-timings{grid-column:1;grid-row:1 / span 2;display:flex;align-items:stretch;align-self:stretch;flex-wrap:nowrap;gap:1px}
+.roster-page .keyword .keyword-timings .timing-badge{align-self:stretch;flex:1;line-height:16px;padding:3px 5px;font-size:10px;justify-content:center}
+.roster-page .keyword .keyword-label{grid-column:2;grid-row:1;display:flex;flex-direction:column;justify-content:center;min-height:calc(var(--keyword-height,26px) - 2px);padding:3px 6px;line-height:16px}
+.roster-page .keyword .keyword-label .keyword-name{align-self:stretch;line-height:16px;padding:0}
+.keyword-origins{margin-top:0;line-height:12px;font-size:9px}
+.roster-page .keyword .keyword-summary{grid-column:2;grid-row:2;min-width:0;padding:4px 6px;line-height:1.65}
+.roster-page .keyword:has(.keyword-origins){min-height:36px}
+.weapon .en-name{display:inline;margin:0 0 0 7px;line-height:inherit}
+@media(max-width:640px){
+  .timing-rule-row .timing-row-title{height:var(--keyword-height);line-height:16px;padding:3px 2px}
+  .roster-page .keyword .keyword-timings .timing-badge{font-size:9px;padding:3px 4px}
+  .weapon .en-name{margin-left:5px}
+}

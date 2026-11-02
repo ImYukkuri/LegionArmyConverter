@@ -49,8 +49,8 @@ function usageBadges(c){
 const timings=rule=>rule.timing?.length?rule.timing:['unclassified'];
 const matchesTiming=rule=>!filterEnabled||timings(rule).some(t=>selectedTimings.has(t));
 const timingBadge=t=>'<span class="timing-badge" data-timing="'+esc(t)+'">'+esc(timingLabels[t]||t)+'</span>';
-const ruleKey=k=>String(k.ruleId||k.id||'').replace(/_x$/,'');
-const ruleQualifier=k=>(k.label||'').split(/[:：]/).slice(1).join(':').replace(/[\dX\s]+/g,'');
+const ruleKey=k=>{const key=String(k.ruleId||k.id||'').toLowerCase().replace(/[\s-]+/g,'_').replace(/_x$/,'');return key==='anti_material'?'anti_materiel':/^direct(?:_|$)/.test(key)?'direct':key};
+const ruleQualifier=k=>ruleKey(k)==='direct'?(k.label||k.raw||'').replace(/^Direct\s*:?\s*/i,'').trim().toLowerCase():(k.label||'').split(/[:：]/).slice(1).join(':').replace(/[\dX\s]+/g,'');
 function sourceCard(c,index){return {key:(c.id||c.name)+'|'+index,name:c.zh?.name||c.name,englishName:c.name,description:c.zh?.description?.length?c.zh.description:c.description||[]}}
 function mergeSources(...lists){return [...new Map(lists.flat().map(s=>[s.key,s])).values()]}
 function withSource(k,c,index){return {...k,upgradeSources:mergeSources(k.upgradeSources||[],[sourceCard(c,index)])}}
@@ -68,6 +68,10 @@ function mergedUnitRules(u){
     const matching=sourceRefs.filter(s=>ruleKey(s.rule)===ruleKey(k)&&(!ruleQualifier(k)||!ruleQualifier(s.rule)||ruleQualifier(k)===ruleQualifier(s.rule))).map(s=>s.card);
     families.get(id).push({...k,upgradeSources:mergeSources(k.upgradeSources||[],matching)});
   }
+  return mergeRuleVariants([...families.values()].flat());
+}
+function mergeRuleVariants(list){
+  const families=new Map();for(const k of list){const id=ruleKey(k)||k.label||k.raw;if(!families.has(id))families.set(id,[]);families.get(id).push(k)}
   const result=[];
   for(const family of families.values()){
     // Keep distinct parameter values/qualifiers; discard only less specific duplicates.
@@ -88,15 +92,14 @@ function chip(rule){
   const index=rules.push(rule)-1;
   return '<button type="button" data-kw="'+index+'" data-rule-id="'+esc(ruleKey(rule))+'" class="keyword '+(!rule.summary||rule.source==='unresolved'?'missing':'')+'" aria-haspopup="dialog"><span class="keyword-timings">'+timings(rule).map(timingBadge).join('')+'</span><span class="keyword-label"><span class="keyword-name">'+esc(rule.label||rule.raw||rule.id)+'</span>'+((rule.upgradeSources||[]).length?'<span class="keyword-origins">'+rule.upgradeSources.map(c=>'<span>来自 '+esc(c.name)+'</span>').join('')+'</span>':'')+'</span><span class="keyword-summary">'+prose(rule.summary||'词典暂缺此项简写。')+'</span></button>';
 }
-const chips=list=>'<div class="chips">'+list.filter(matchesTiming).map(chip).join('')+'</div>';
+const chips=list=>'<div class="chips">'+mergeRuleVariants(list).filter(matchesTiming).map(chip).join('')+'</div>';
 function sortedRules(list){
-  const unique=new Map();for(const k of list)unique.set((k.ruleId||k.id)+'|'+(k.label||k.raw),k);
   const buckets=timingRows.map(()=>[]);
-  for(const k of unique.values()){
+  for(const k of mergeRuleVariants(list)){
     const active=timings(k).filter(t=>!filterEnabled||selectedTimings.has(t));if(!active.length)continue;
     const row=Math.min(...active.map(t=>{const n=timingRows.findIndex(r=>r.includes(t));return n<0?timingRows.length-1:n}));buckets[row].push(k);
   }
-  return '<div class="timing-rule-list">'+buckets.map((ks,i)=>ks.length?'<div class="timing-rule-row" data-timing-group="'+i+'"><div class="timing-row-title" title="'+esc(timingRows[i].map(t=>timingLabels[t]).join(' / '))+'"><span class="timing-row-index" aria-hidden="true">'+String(i+1).padStart(2,'0')+'</span><span class="timing-row-label">'+timingRowLabels[i]+'</span></div>'+chips(ks)+'</div>':'').join('')+'</div>';
+  return '<div class="timing-rule-list">'+buckets.map((ks,i)=>ks.length?'<div class="timing-rule-row" data-timing-group="'+i+'" data-has-origins="'+ks.some(k=>k.upgradeSources?.length)+'"><div class="timing-row-title" title="'+esc(timingRows[i].map(t=>timingLabels[t]).join(' / '))+'"><span class="timing-row-index" aria-hidden="true">'+String(i+1).padStart(2,'0')+'</span><span class="timing-row-label">'+timingRowLabels[i]+'</span></div>'+chips(ks)+'</div>':'').join('')+'</div>';
 }
 function dice(d){
   const text=typeof d==='string'?d:Object.entries({R:d?.red,B:d?.black,W:d?.white}).filter(([,n])=>n).map(([c,n])=>n+c).join(' ');

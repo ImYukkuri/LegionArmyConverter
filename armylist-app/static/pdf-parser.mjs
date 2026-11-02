@@ -112,18 +112,26 @@ export function normalizeGroupPoints(units,diagnostics){
     diagnostics.push({level:'info',code:'group_points_distributed',unitIds:ids,message:`${name}（#1–#${count}）的${groupPoints}分为同配置组合计；已分配为每支${groupPoints/count}分。`});
   }
 }
-function enrich(army,catalog){
-  const {display:terms,aliases,upgrades,commands,supplement}=catalog,byRule=Object.fromEntries(catalog.keywords.map(k=>[k.identifier,k]));
-  const display=s=>{if(!s)return '';const b=s.replace(/\s*\(#\d+\)$/,'');return (terms[b]||b)+s.slice(b.length)};
-  const keyword=raw=>{
-    let base=raw.replace(/\s+\d+$/,'').trim();for(const p of ['Mercenary','Independent','Equip'])if(raw.startsWith(p))base=p;
-    const key=aliases[norm(base)]||norm(base),item=byRule[key]||supplement[key];
-    if(item){let label=item.rulebook_heading.replace('完 成 任 务','完成任务'),m=raw.match(/\s+(\d+)$/);if(m)label=label.replaceAll('X',m[1]);
-      if(['Mercenary','Independent','Equip'].includes(base)){let extra=raw.slice(base.length).replace(/^[ :]+|[ :]+$/g,'');for(const [en,zh]of Object.entries(terms).sort((a,b)=>b[0].length-a[0].length))extra=extra.split(en).join(zh);extra=extra.replaceAll(' and ','及').replaceAll(' or ','或');label=label.split(/：|X/)[0]+(extra?'：'+extra:'')}
-      return {raw,id:key,label,summary:item.summary,full:item.rulebook_quote,timing:item.timing,source:byRule[key]?'reviewed_dictionary':'local_supplement'};
+export function resolveKeyword(raw,catalog,glossary={}){
+  const {display:terms,aliases,supplement}=catalog,byRule=Object.fromEntries(catalog.keywords.map(k=>[k.identifier,k]));
+  let base=raw.replace(/\s+\d+$/,'').trim();for(const p of ['Mercenary','Independent','Equip'])if(raw.startsWith(p))base=p;
+  const direct=/^Direct(?:\s|:|$)/i.test(raw);if(direct)base='Direct';
+  const parameterized=raw.match(/^(Arm|Detonate)\s+(?:\d+|X)(?:\s*:|$)/i);if(parameterized)base=parameterized[1];
+  const normalized=norm(base).replace(/_x$/,''),key=aliases[normalized]||normalized,item=byRule[key]||supplement[key];
+  if(item){let label=item.rulebook_heading.replace('完 成 任 务','完成任务'),m=raw.match(/\s+(\d+)$/);if(m)label=label.replaceAll('X',m[1]);
+    if(direct)label=raw;
+    else if(['arm','detonate'].includes(key)){
+      const p=raw.match(/^(?:Arm|Detonate)\s+(\d+|X)(?:\s*:\s*(.+))?$/i);if(p)label=item.rulebook_heading.split('：')[0].replaceAll('X',p[1])+(p[2]?'：'+p[2]:'');
     }
-    const quote=army.pdfGlossary[key]||'';return {raw,id:key,label:terms[raw]||raw,summary:'中文词典暂未收录。'+(quote?'完整模式保留 PDF 英文原文。':''),full:quote||'此词条暂缺规则文本。',timing:[],source:quote?'pdf_glossary':'unresolved'};
-  };
+    if(['Mercenary','Independent','Equip'].includes(base)){let extra=raw.slice(base.length).replace(/^[ :]+|[ :]+$/g,'');for(const [en,zh]of Object.entries(terms).sort((a,b)=>b[0].length-a[0].length))extra=extra.split(en).join(zh);extra=extra.replaceAll(' and ','及').replaceAll(' or ','或');label=label.split(/：|X/)[0]+(extra?'：'+extra:'')}
+    return {raw,id:key,label,summary:item.summary,full:item.rulebook_quote,timing:item.timing,source:byRule[key]?'reviewed_dictionary':'local_supplement'};
+  }
+  const quote=glossary[key]||'';return {raw,id:key,label:terms[raw]||raw,summary:'中文词典暂未收录。'+(quote?'完整模式保留 PDF 英文原文。':''),full:quote||'此词条暂缺规则文本。',timing:[],source:quote?'pdf_glossary':'unresolved'};
+}
+function enrich(army,catalog){
+  const {display:terms,upgrades,commands}=catalog;
+  const display=s=>{if(!s)return '';const b=s.replace(/\s*\(#\d+\)$/,'');return (terms[b]||b)+s.slice(b.length)};
+  const keyword=raw=>resolveKeyword(raw,catalog,army.pdfGlossary);
   for(const u of army.units){
     u.zh={name:display(u.name),subtitle:display(u.subtitle)};
     u.upgrades=u.upgrades.map(name=>{

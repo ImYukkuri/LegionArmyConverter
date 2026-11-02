@@ -29,6 +29,7 @@
     "armylist-app/static/roster.html",
     "armylist-app/static/roster.js",
     "armylist-app/static/style.css",
+    "armylist-app/tests/keyword-normalization.cjs",
     "armylist-app/tests/public-smoke.cjs",
     "docs/PUBLICATION.md",
     "keyword/legion_keyword_dictionary_summary_reviewed.json",
@@ -39,14 +40,15 @@
     "publication-policy.json",
     "tacticalcards/tactical-cards.bilingual.json",
     "tools/public_audit.py",
+    "tools/refresh_keyword_references.py",
     "upgradecards/upgrades-slim.json"
   ],
   "runtimeData": {
-    "upgradecards/upgrades-slim.json": "aa69c961be27c14a6f42aa39fe9959ef363fb1a5611e441a14f03d2a8f58145d",
-    "tacticalcards/tactical-cards.bilingual.json": "2823759f47ea8bdf694c3d66dddd1e045255a85fe8a8674cd7c6316b0d4b6fc7",
-    "keyword/legion_keyword_dictionary_summary_reviewed.json": "507314cb1f1c3bd094692fc9392eab9238da0267edbd241a299ef804e71e11ab",
+    "upgradecards/upgrades-slim.json": "8a9270a72256579b9294f8dcf2ec278d281a79605ff02ddf4106a4e1767e9285",
+    "tacticalcards/tactical-cards.bilingual.json": "463cdf807b69e8f18aa943a12a762c9275ea8b2b9cb6a282c4212f3494fd1b1b",
+    "keyword/legion_keyword_dictionary_summary_reviewed.json": "8a0ffcf445d29b07ea82afbd76be0254176cea983ee8aede0be6e84a6713623f",
     "keyword/legion_keyword_dictionary_supplement_zh.json": "e22d828091be1bee633b1b56eef0ab8c528009b37a14f298e1b8464be8492e02",
-    "keyword/tactical_keyword_supplement_zh.json": "43e945e970fbf9d6995ff6b64376453f96f20a85f2abd89eb9d7e821b872e47a"
+    "keyword/tactical_keyword_supplement_zh.json": "144dbd67ae56069da6d975b4ba9b415ae91ca1b7fad063148ea43b68b8547633"
   },
   "note": "Retained by explicit project scope; no assertion of copyright authorization. See docs/PUBLICATION.md."
 }

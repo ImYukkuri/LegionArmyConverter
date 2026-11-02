@@ -1382,8 +1382,8 @@
     "identifier": "assault",
     "rulebook_heading": "突击X",
     "rulebook_english_heading": "ASSAULT X",
-    "summary": "防御单位在距离1内时，升级该武器的X个攻击骰。",
-    "rulebook_quote": "当带有突击X关键词的武器被添加到攻击池时， 如果防御单位在攻击单位单位队长的 1内， 你可以升级该武器的X个攻击骰子。",
+    "summary": "防御单位在攻击单位队长距离1内时，可升级该武器的X个攻击骰子。",
+    "rulebook_quote": "突击X (ASSAULT X)\n当带有突击X关键词的武器被添加到攻击池时，如果防御单位在攻击单位单位队长的1内，你可以升级该武器的X个攻击骰子。",
     "timing": [
       "attack"
     ]
@@ -1558,5 +1558,21 @@
     "timing": [
       "attack"
     ]
+  },
+  {
+    "identifier": "anti_materiel",
+    "rulebook_heading": "反器材X",
+    "rulebook_english_heading": "ANTI-MATERIEL X",
+    "summary": "攻击载具时，升级X个骰子。",
+    "rulebook_quote": "当一个单位进行攻击，且攻击池中包含反载具X关键词时，如果防御单位是载具单位，则升级该武器的X个攻击骰子。",
+    "timing": ["attack"]
+  },
+  {
+    "identifier": "anti_personnel",
+    "rulebook_heading": "反人员X",
+    "rulebook_english_heading": "ANTI-PERSONNEL X",
+    "summary": "攻击士兵单位时，升级X个骰子。",
+    "rulebook_quote": "反人员X (ANTI-PERSONNEL X)\n当一个单位进行攻击，且攻击池中包含反人员X关键词时，如果防御单位是士兵单位，则升级该武器的X个攻击骰子。",
+    "timing": ["attack"]
   }
 ]

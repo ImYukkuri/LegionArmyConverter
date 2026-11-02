@@ -11,10 +11,14 @@ KEYWORDS=load_json(ROOT/'keyword/legion_keyword_dictionary_summary_reviewed.json
 UPGRADES=load_json(ROOT/'upgradecards/upgrades-slim.json')['cards']
 COMMANDS=load_json(ROOT/'tacticalcards/tactical-cards.bilingual.json')['cards']
 ALIASES={'mandalorians_are_stronger_together':'mandalorian_are_stronger_together',
-         'we_re_not_regs':'were_not_regs','we_are_not_regs':'were_not_regs','prepared_positions':'prepared_position'}
+         'we_re_not_regs':'were_not_regs','we_are_not_regs':'were_not_regs','prepared_positions':'prepared_position',
+         'anti_material':'anti_materiel'}
 def norm(s):return re.sub(r'[^a-z0-9]+','_',s.lower()).strip('_')
+def canonical_rule_id(raw):
+    key=re.sub(r'_x$','',norm(raw))
+    return ALIASES.get(key,key)
 BY_RULE={k['identifier']:k for k in KEYWORDS}
-SUPPLEMENT={k['identifier']:k for k in load_json(ROOT/'keyword/legion_keyword_dictionary_supplement_zh.json')}
+SUPPLEMENT={k['identifier']:k for path in ('keyword/legion_keyword_dictionary_supplement_zh.json','keyword/tactical_keyword_supplement_zh.json')for k in load_json(ROOT/path)}
 DISPLAY={
  'Bo-Katan Kryze':'博-卡坦·克里兹','Savior of Mandalore':'曼达洛的救星','Din Djarin':'丁·贾林','The Mandalorian':'曼达洛人',
  'Grogu':'格罗古','counterpart':'搭档','Mandalorian Warriors':'曼达洛战士','Super Commandos':'超级突击队',
@@ -40,12 +44,22 @@ def keyword(raw,glossary):
     if raw.startswith('Mercenary'):base='Mercenary'
     if raw.startswith('Independent'):base='Independent'
     if raw.startswith('Equip'):base='Equip'
-    key=ALIASES.get(norm(base),norm(base))
-    item=BY_RULE.get(key)
+    direct=re.match(r'^Direct(?:\s|:|$)',raw,re.I)
+    if direct:base='Direct'
+    parameterized=re.match(r'^(Arm|Detonate)\s+(?:\d+|X)(?:\s*:|$)',raw,re.I)
+    if parameterized:base=parameterized[1]
+    key=canonical_rule_id(base)
+    item=BY_RULE.get(key)or SUPPLEMENT.get(key)
     if item:
         title=item['rulebook_heading'].replace('完 成 任 务','完成任务')
         match=re.search(r'\s+(\d+)$',raw)
         if match:title=title.replace('X',match[1])
+        if direct:title=raw
+        elif key in ('arm','detonate'):
+            parameter=re.match(r'^(?:Arm|Detonate)\s+(\d+|X)(?:\s*:\s*(.+))?$',raw,re.I)
+            if parameter:
+                title=item['rulebook_heading'].split('：')[0].replace('X',parameter[1])
+                if parameter[2]:title+='：'+parameter[2]
         extra=raw[len(base):].strip(' :')
         if base in ('Mercenary','Independent','Equip'):
             main=re.split('：|X',title)[0]
@@ -53,7 +67,7 @@ def keyword(raw,glossary):
             extra=extra.replace(' and ','及').replace(' or ','或')
             title=main+('：'+extra if extra else '')
         return {'raw':raw,'id':key,'label':title,'summary':item['summary'],'full':item['rulebook_quote'],
-                'timing':item['timing'],'source':'reviewed_dictionary'}
+                'timing':item['timing'],'source':'reviewed_dictionary'if key in BY_RULE else 'local_supplement'}
     if key in SUPPLEMENT:
         entry=SUPPLEMENT[key]
         return {'raw':raw,'id':key,'label':entry['rulebook_heading'],'summary':entry['summary'],'full':entry['rulebook_quote'],

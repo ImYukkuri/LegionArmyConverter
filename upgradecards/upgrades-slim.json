@@ -2438,11 +2438,13 @@
               {
                 "id": "anti_personnel_x",
                 "ruleId": "anti_personnel",
-                "label": "anti personnel2",
-                "summary": null,
-                "full": null,
-                "timing": [],
-                "source": "card_term_translation"
+                "label": "反人员2",
+                "summary": "攻击士兵单位时，升级X个骰子。",
+                "full": "反人员X (ANTI-PERSONNEL X)\n当一个单位进行攻击，且攻击池中包含反人员X关键词时，如果防御单位是士兵单位，则升级该武器的X个攻击骰子。",
+                "timing": [
+                  "attack"
+                ],
+                "source": "reviewed_dictionary"
               },
               {
                 "id": "scatter",
@@ -2520,11 +2522,13 @@
               {
                 "id": "anti_materiel_x",
                 "ruleId": "anti_materiel",
-                "label": "anti materiel3",
-                "summary": null,
-                "full": null,
-                "timing": [],
-                "source": "card_term_translation"
+                "label": "反器材3",
+                "summary": "攻击载具时，升级X个骰子。",
+                "full": "当一个单位进行攻击，且攻击池中包含反载具X关键词时，如果防御单位是载具单位，则升级该武器的X个攻击骰子。",
+                "timing": [
+                  "attack"
+                ],
+                "source": "reviewed_dictionary"
               },
               {
                 "id": "impact_x",
@@ -3928,8 +3932,8 @@
             "id": "assault_x",
             "ruleId": "assault",
             "label": "突击X",
-            "summary": "防御单位在距离1内时，升级该武器的X个攻击骰。",
-            "full": "当带有突击X关键词的武器被添加到攻击池时， 如果防御单位在攻击单位单位队长的 1内， 你可以升级该武器的X个攻击骰子。",
+            "summary": "防御单位在攻击单位队长距离1内时，可升级该武器的X个攻击骰子。",
+            "full": "突击X (ASSAULT X)\n当带有突击X关键词的武器被添加到攻击池时，如果防御单位在攻击单位单位队长的1内，你可以升级该武器的X个攻击骰子。",
             "timing": [
               "attack"
             ],
@@ -6802,8 +6806,8 @@
             "id": "assault_x",
             "ruleId": "assault",
             "label": "突击X",
-            "summary": "防御单位在距离1内时，升级该武器的X个攻击骰。",
-            "full": "当带有突击X关键词的武器被添加到攻击池时， 如果防御单位在攻击单位单位队长的 1内， 你可以升级该武器的X个攻击骰子。",
+            "summary": "防御单位在攻击单位队长距离1内时，可升级该武器的X个攻击骰子。",
+            "full": "突击X (ASSAULT X)\n当带有突击X关键词的武器被添加到攻击池时，如果防御单位在攻击单位单位队长的1内，你可以升级该武器的X个攻击骰子。",
             "timing": [
               "attack"
             ],
@@ -12810,7 +12814,7 @@
           {
             "id": "direct",
             "ruleId": "direct",
-            "label": "传令",
+            "label": "Direct Clone Trooper",
             "summary": "下达命令步骤时，向距离2内1个指定友军下达命令。",
             "full": "指挥阶段 的下达命令步骤期间， 带有传令关键词的单位可以对在 2内的一个拥有指定单位名称或单位类型的友方单位下达一个命令。",
             "timing": [
@@ -18004,11 +18008,13 @@
               {
                 "id": "anti_materiel_x",
                 "ruleId": "anti_materiel",
-                "label": "anti materiel4",
-                "summary": null,
-                "full": null,
-                "timing": [],
-                "source": "card_term_translation"
+                "label": "反器材4",
+                "summary": "攻击载具时，升级X个骰子。",
+                "full": "当一个单位进行攻击，且攻击池中包含反载具X关键词时，如果防御单位是载具单位，则升级该武器的X个攻击骰子。",
+                "timing": [
+                  "attack"
+                ],
+                "source": "reviewed_dictionary"
               },
               {
                 "id": "impact_x",
@@ -18551,7 +18557,7 @@
           {
             "id": "direct",
             "ruleId": "direct",
-            "label": "传令",
+            "label": "Direct AI Unit",
             "summary": "下达命令步骤时，向距离2内1个指定友军下达命令。",
             "full": "指挥阶段 的下达命令步骤期间， 带有传令关键词的单位可以对在 2内的一个拥有指定单位名称或单位类型的友方单位下达一个命令。",
             "timing": [
@@ -18942,11 +18948,13 @@
           {
             "id": "anti_personnel_x",
             "ruleId": "anti_personnel",
-            "label": "anti personnel",
-            "summary": null,
-            "full": null,
-            "timing": [],
-            "source": "card_term_translation"
+            "label": "反人员X",
+            "summary": "攻击士兵单位时，升级X个骰子。",
+            "full": "反人员X (ANTI-PERSONNEL X)\n当一个单位进行攻击，且攻击池中包含反人员X关键词时，如果防御单位是士兵单位，则升级该武器的X个攻击骰子。",
+            "timing": [
+              "attack"
+            ],
+            "source": "reviewed_dictionary"
           },
           {
             "id": "overwhelm",
@@ -22259,8 +22267,8 @@
             "id": "assault_x",
             "ruleId": "assault",
             "label": "突击X",
-            "summary": "防御单位在距离1内时，升级该武器的X个攻击骰。",
-            "full": "当带有突击X关键词的武器被添加到攻击池时， 如果防御单位在攻击单位单位队长的 1内， 你可以升级该武器的X个攻击骰子。",
+            "summary": "防御单位在攻击单位队长距离1内时，可升级该武器的X个攻击骰子。",
+            "full": "突击X (ASSAULT X)\n当带有突击X关键词的武器被添加到攻击池时，如果防御单位在攻击单位单位队长的1内，你可以升级该武器的X个攻击骰子。",
             "timing": [
               "attack"
             ],
@@ -25332,11 +25340,13 @@
           {
             "id": "anti_materiel_x",
             "ruleId": "anti_materiel",
-            "label": "anti materiel",
-            "summary": null,
-            "full": null,
-            "timing": [],
-            "source": "card_term_translation"
+            "label": "反器材X",
+            "summary": "攻击载具时，升级X个骰子。",
+            "full": "当一个单位进行攻击，且攻击池中包含反载具X关键词时，如果防御单位是载具单位，则升级该武器的X个攻击骰子。",
+            "timing": [
+              "attack"
+            ],
+            "source": "reviewed_dictionary"
           },
           {
             "id": "impact_x",
@@ -25704,7 +25714,7 @@
           {
             "id": "direct",
             "ruleId": "direct",
-            "label": "传令",
+            "label": "Direct {@icon",
             "summary": "下达命令步骤时，向距离2内1个指定友军下达命令。",
             "full": "指挥阶段 的下达命令步骤期间， 带有传令关键词的单位可以对在 2内的一个拥有指定单位名称或单位类型的友方单位下达一个命令。",
             "timing": [
@@ -29475,7 +29485,7 @@
           {
             "id": "direct",
             "ruleId": "direct",
-            "label": "传令",
+            "label": "Direct Mercenary Trooper",
             "summary": "下达命令步骤时，向距离2内1个指定友军下达命令。",
             "full": "指挥阶段 的下达命令步骤期间， 带有传令关键词的单位可以对在 2内的一个拥有指定单位名称或单位类型的友方单位下达一个命令。",
             "timing": [
