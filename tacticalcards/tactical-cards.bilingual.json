@@ -3277,7 +3277,7 @@
       "description": "Until the end of this Round, each time an allied unit with a faceup Order token makes an attack, if the defending unit is within {@icon.range-2}  and in LOS of Lando Calrissian and if the Attack Pool contains at least 1 Blank,  {@icon.surge}, and {@icon.hit} reults during the Reroll Dice step, you may change 1 {@icon.hit} result and 1 {@icon.surge} result in the Attack Pool into {@icon.critical} results.",
       "weapons": [],
       "zh": {
-        "name": "傻瓜牌阵",
+        "name": "傻瓜牌型",
         "owner": "兰多·卡瑞辛",
         "orders": "兰多·卡瑞辛及2 支单位",
         "description": "直到本轮结束，拥有正面朝上命令标记的友方单位攻击时，若防御单位在兰多·卡瑞辛{@icon.range-2}内且在其视线内，且攻击池在重掷骰子步骤包含至少1个空白、1个{@icon.surge}及1个{@icon.hit}结果，你可以将攻击池中1个{@icon.hit}及1个{@icon.surge}结果改为{@icon.critical}结果。",
@@ -3603,7 +3603,7 @@
       "description": "Until the end of the Round, each time an allied {@icon.rank-corps} unit makes a Ranged attack, after the action is resolved, if it spent 1 or more Aim tokens, another allied unit within {@icon.range-2} may gain 1 Aim token.",
       "weapons": [],
       "zh": {
-        "name": "不懈突击",
+        "name": "无休攻势",
         "owner": "分离主义入侵军",
         "orders": "2 {@icon.rank-corps} 支单位",
         "description": "直到本轮结束，友方{@icon.rank-corps}单位每次进行远程攻击后，在该行动结算后，若其花费过至少1个瞄准标记，{@icon.range-2}内的另一支友方单位可以获得1个瞄准标记。",
@@ -3823,7 +3823,7 @@
       "description": "Asajj Ventress gains Jedi Hunter this Round. Until the end of the Round, each time Asajj Ventress makes an attack, during the Roll Attack Dice step, she may gain up to 4 Suppression tokens before rolling dice. She gains 1 Dodge token for each Suppression token gained in this way.",
       "weapons": [],
       "zh": {
-        "name": "绝地必将陨落",
+        "name": "绝地将陨",
         "owner": "阿萨吉·文崔斯",
         "orders": "阿萨吉·文崔斯",
         "description": "阿萨吉·文崔斯本轮获得绝地猎手。直到本轮结束，她每次攻击时，可以在掷攻击骰子步骤掷骰前获得最多4个压制标记；每以此法获得1个压制标记，获得1个闪避标记。",
@@ -4166,7 +4166,7 @@
       "description": "When a unit is issued an Order with this card, that unit gains 1 Dodge token. Until the end of the Round, each time Count Dooku makes a Ranged attack against a Trooper unit, after the attack is resolved, that unit makes a Speed-2 Move. You resolve this movement.",
       "weapons": [],
       "zh": {
-        "name": "你真让我失望",
+        "name": "你让我失望",
         "owner": "杜库伯爵",
         "orders": "杜库伯爵及2 支单位",
         "description": "单位通过此卡获发命令时，获得1个闪避标记。直到本轮结束，杜库伯爵每次对步兵单位进行远程攻击后，在攻击结算后，该单位进行一次速度2移动，由你结算此移动。",
@@ -4346,7 +4346,7 @@
         }
       ],
       "zh": {
-        "name": "我练过你们的绝地武功",
+        "name": "我练过你们的绝地招式",
         "owner": "格里弗斯将军",
         "orders": "格里弗斯将军",
         "description": "格里弗斯将军获得1个闪避标记，本轮获得脱离交战。他下次激活结束时，可以使用下方武器，对{@icon.range-1}内且在视线内的每支敌方单位各进行一次攻击。",
@@ -4510,7 +4510,7 @@
       "description": "When a unit is issued an Order with this card, that unit gains 1 Dodge token and gains Disengage and Impervious this Round.",
       "weapons": [],
       "zh": {
-        "name": "留存协议",
+        "name": "保全协议",
         "owner": "卡拉尼或克拉肯",
         "orders": "2 支机器人步兵单位或AI单位",
         "description": "单位通过此卡获发命令时，获得1个闪避标记，本轮获得脱离交战及难以穿刺。",
@@ -4774,7 +4774,7 @@
       "description": "This Round, Gar Saxon cannot issue Orders to allied units that are not within {@icon.range-1} of him. When a unit is issued an Order with this card, it gains 1 Dodge token. \n\n Gar Saxon and allied {@icon.rank-special-forces} units gain Outmaneuver this Round.",
       "weapons": [],
       "zh": {
-        "name": "来日再战",
+        "name": "择日再战",
         "owner": "加尔·萨克森",
         "orders": "加尔·萨克森及2 支步兵单位",
         "description": "本轮加尔·萨克森不能向不在其{@icon.range-1}内的友方单位发出命令。单位通过此卡获发命令时，获得1个闪避标记。加尔及友方{@icon.rank-special-forces}单位本轮获得超机动。",
@@ -4815,7 +4815,7 @@
       "description": "When a unit is issued an Order with this card, it gains 1 Aim token. \n\n Gar Saxon and allied {@icon.rank-special-forces} units gain Indomitable this Round.",
       "weapons": [],
       "zh": {
-        "name": "不胜则死！",
+        "name": "不胜毋死！",
         "owner": "加尔·萨克森",
         "orders": "加尔·萨克森及2 支步兵单位",
         "description": "单位通过此卡获发命令时，获得1个瞄准标记。加尔·萨克森及友方{@icon.rank-special-forces}单位本轮获得不屈。",
@@ -5181,7 +5181,7 @@
       "description": "At the start and end of Cad Baneʼs next Activation, he may remove any number of Suppression tokens. For each Suppression token removed in this way, choose another unit within {@icon.range-2} of him. The chosen unit gains 1 Suppression token. Each time an enemy Trooper unit gains 1 or more Suppression tokens in this way, if it has no Immobilize tokens, it gains 1 Immobilize token.",
       "weapons": [],
       "zh": {
-        "name": "一切尽在掌握",
+        "name": "由我掌控",
         "owner": "凯德·贝恩",
         "orders": "凯德·贝恩及1 支单位",
         "description": "凯德·贝恩下次激活开始及结束时，可以移除任意数量的压制标记。每以此法移除1个压制标记，选择他{@icon.range-2}内的另一支单位；所选单位获得1个压制标记。敌方步兵单位每以此法获得至少1个压制标记时，若没有定身标记，则获得1个定身标记。",

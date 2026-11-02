@@ -53,9 +53,9 @@
     "upgradecards/upgrades-slim.json"
   ],
   "runtimeData": {
-    "upgradecards/upgrades-slim.json": "8a9270a72256579b9294f8dcf2ec278d281a79605ff02ddf4106a4e1767e9285",
-    "tacticalcards/tactical-cards.bilingual.json": "801a60a87b3baaa346735d7937369ade32ca1ec9acc5502105656bd13ed7205e",
-    "keyword/legion_keyword_dictionary_summary_reviewed.json": "8a0ffcf445d29b07ea82afbd76be0254176cea983ee8aede0be6e84a6713623f",
+    "upgradecards/upgrades-slim.json": "a6051cc44650d650a7f97b19e0306493227e0d04a0f1f2ad291d9b75458199c7",
+    "tacticalcards/tactical-cards.bilingual.json": "bc076de8914a6f49f85a85acf5dae3c5dfe41a4885d1b5aa93eb1e37e6ff4303",
+    "keyword/legion_keyword_dictionary_summary_reviewed.json": "1b9afc612f931726185238d2edea30ffd64fa564492034af1232a7488ea60c87",
     "keyword/legion_keyword_dictionary_supplement_zh.json": "e22d828091be1bee633b1b56eef0ab8c528009b37a14f298e1b8464be8492e02",
     "keyword/tactical_keyword_supplement_zh.json": "144dbd67ae56069da6d975b4ba9b415ae91ca1b7fad063148ea43b68b8547633",
     "mappings/unit-names.zh.json": "c94838e4190807e141aa910048340c7e011643c9d366b1f1738e3849038a9978"
