@@ -33,6 +33,7 @@
     "armylist-app/tests/command-fallback.cjs",
     "armylist-app/tests/command-header.cjs",
     "armylist-app/tests/keyword-normalization.cjs",
+    "armylist-app/tests/import-reliability.cjs",
     "armylist-app/tests/parameter-keywords.cjs",
     "armylist-app/tests/public-smoke.cjs",
     "armylist-app/tests/text-fragments.cjs",

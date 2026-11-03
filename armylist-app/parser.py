@@ -6,7 +6,7 @@ import re
 import pdfplumber
 from catalog import enrich,norm
 
-VERSION='legion-hq-stat-reference/v2.3'
+VERSION='legion-hq-stat-reference/v2.4'
 def clean(s):return re.sub(r'\s+',' ',s or '').strip()
 def glossary_heading(line,heading_fonts):
     label,separator,_=line['text'].partition('.')
@@ -176,9 +176,10 @@ def parse_pdf(content,filename):
     with pdfplumber.open(io.BytesIO(content))as doc:
         if len(doc.pages)>50:raise ValueError('当前仅支持50页以内的军表。')
         army['source']['pageCount']=len(doc.pages)
-        previous_glossary=False;heading_fonts=set()
+        previous_glossary=False;heading_fonts=set();text_pages=0
         for number,page in enumerate(doc.pages,1):
             text=page.extract_text()or ''
+            if text.strip():text_pages+=1
             columns=[page.crop((x0,0,x1,page.height)).extract_text_lines(return_chars=True)for x0,x1 in ((0,page.width/2),(page.width/2,page.width))]
             glossary_title=next((line for col in columns for line in col if line['text']=='Keyword Glossary'),None)
             if glossary_title:heading_fonts={c['fontname']for c in glossary_title['chars']}
@@ -191,9 +192,15 @@ def parse_pdf(content,filename):
                     card=command_panel(page,box,number,len(army['commandCards'])+1)
                     if card:army['commandCards'].append(card)
             elif is_glossary:
+                glossary_top=glossary_title['top']if glossary_title else float('-inf')
+                for box in bounds(page,100):
+                    if box[3]>=glossary_top:continue
+                    unit=parse_unit_panel(page,box,number,len(army['units'])+1,army['reviewItems'])
+                    if unit:army['units'].append(unit)
                 for col in columns:
                     current=None
                     for line in col:
+                        if line['top']<=glossary_top:continue
                         if heading(line):
                             label=line['text'].split('.',1)[0];current=norm(label)
                             army['pdfGlossary'][current]=line['text'].split('.',1)[1].strip()
@@ -206,7 +213,7 @@ def parse_pdf(content,filename):
                 if len(army['units'])==before and len(army['reviewItems'])==review_before:
                     army['reviewItems'].append({'category':'parsing','code':'page_unparsed','title':f'第 {number} 页',
                         'message':'此页未能识别为单位、战术卡或词条表，已保留可提取的文字。','rawText':text or '此页没有可提取的文字，可能为扫描页。','locations':[{'page':number,'context':'整页'}]})
-        if not army['units']:raise ValueError('未识别到 Legion HQ 属性表。当前不支持扫描军表或其他导出版式。')
+        if not army['units']:raise ValueError('未识别到 Legion HQ 属性表，请确认导出内容包含单位属性表。'if text_pages else 'PDF 没有可提取的文字层：文字可能已转为轮廓或图片。当前未启用 OCR。请回到原始网页，在浏览器打印目标中选择“另存为 PDF / Save as PDF”，保存后再导入。')
     normalize_group_points(army['units'],army['diagnostics'])
     if army['reviewItems']:army['diagnostics'].append({'level':'warning','code':'partial_import','message':'部分面板无法完整解析，已保留可读单位与原文；请查看待核对内容，费用合计可能不完整。'})
     if not army['commandCards']:army['diagnostics'].append({'level':'warning','code':'commands_absent','message':'未识别到文字命令卡面板；军表其他内容仍可使用。'})

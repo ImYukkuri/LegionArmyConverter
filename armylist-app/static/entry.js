@@ -1,17 +1,28 @@
 const $=q=>document.querySelector(q);
-let file=null,army=null,busy=false;
+let file=null,army=null,busy=false,selection=0,reading=false;
 let parserPromise;
 const reviewPanel=document.createElement('details');reviewPanel.id='review-items';reviewPanel.className='review-panel';reviewPanel.open=true;reviewPanel.hidden=true;$('#result .diagnostics').before(reviewPanel);
 const parser=()=>parserPromise??=import('./pdf-parser.mjs').catch(e=>{parserPromise=null;console.error('PDF module load failed',e);throw new Error('PDF 解析组件加载失败。请在项目根目录运行 npm ci --ignore-scripts 和 npm run build，再通过 Live Server 打开 dist/index.html；部署时需复制完整的 dist 目录。')});
 const status=(message,error=false)=>{$('#status').textContent=message;$('#status').classList.toggle('error',error)};
 const valid=data=>{if(data?.schema!=='legion-army/v2'||!Array.isArray(data.units)||!data.units.length||!Array.isArray(data.commandCards))throw new Error('JSON 必须是本项目输出的 legion-army/v2 格式。');return data};
-function select(f){if(!f)return;file=f;$('#selected-file').textContent=f.name;$('#parse').disabled=busy;status('文件已选择，点击提取。')}
-function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>b.disabled=value);$('#parse').disabled=value||!file}
+async function readFileBytes(f){
+  try{return await f.arrayBuffer()}catch(first){
+    // A second reader can recover transient provider failures, not denied access.
+    try{return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error||first);reader.onabort=()=>reject(first);reader.readAsArrayBuffer(f)})}
+    catch{throw new Error('无法读取所选文件：文件可能已移动、被占用，或浏览器的访问授权已失效。请将 PDF 保存到本机下载目录后重新选择；微信或云盘中的文件请先另存。')}
+  }
+}
+async function select(f){
+  if(!f||busy)return;const ticket=++selection;file=null;army=null;reading=true;$('#result').hidden=true;$('#selected-file').textContent=f.name;$('#parse').disabled=true;status('正在读取文件到浏览器内存…');
+  try{if(f.size>25*1024*1024)throw new Error('文件超过25MB限制。');const bytes=await readFileBytes(f);if(ticket!==selection)return;if(!bytes.byteLength)throw new Error('文件为空，请重新选择 PDF。');file={name:f.name,bytes};status('文件已读取，点击提取。')}
+  catch(error){if(ticket===selection)status(error.message,true)}finally{if(ticket===selection){reading=false;$('#parse').disabled=busy||!file}}
+}
+function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>b.disabled=value);document.querySelectorAll('input[type=file]').forEach(i=>i.disabled=value);$('#parse').disabled=value||reading||!file}
 function show(data){army=valid(data);$('#result').hidden=false;$('#source-name').textContent=army.source.pdf;$('#metrics').replaceChildren();for(const [label,value]of [['单位条目',army.units.length],[army.totals.incomplete?'已识别费用（待核对）':'费用合计',army.totals.pdfPoints],['武器',army.totals.weapons],['战术卡',army.commandCards.length]]){const el=document.createElement('div');const b=document.createElement('b');b.textContent=value;const span=document.createElement('span');span.textContent=label;el.append(b,span);$('#metrics').append(el)}const diagnostics=army.diagnostics||[];$('#diagnostics-title').textContent='解析记录 · '+diagnostics.length+' 项提示';$('#diagnostics').replaceChildren();for(const item of diagnostics){const li=document.createElement('li');li.textContent=item.message;$('#diagnostics').append(li)}$('#json-preview').textContent=JSON.stringify(army,null,2);LegionReview.render(reviewPanel,army);status(army.reviewItems?.length?'军表已导入；有 '+army.reviewItems.length+' 项待核对内容，已集中列在下方。':'军表数据已就绪；未提供本地译文的条目保留原文。')}
 async function request(url,opts){const r=await fetch(url,opts);if(!r.ok){let error;try{error=await r.json()}catch{}throw new Error(error?.error||'请求失败：'+r.status)}return r}
-$('#pdf-file').addEventListener('change',e=>select(e.target.files[0]));
+$('#pdf-file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';select(f)});
 const panel=$('.upload-panel');panel.addEventListener('dragover',e=>{e.preventDefault();panel.classList.add('dragging')});panel.addEventListener('dragleave',()=>panel.classList.remove('dragging'));panel.addEventListener('drop',e=>{e.preventDefault();panel.classList.remove('dragging');if(!busy)select(e.dataTransfer.files[0])});
-async function parseFile(f){const {parsePdf}=await parser();return parsePdf(await f.arrayBuffer(),f.name,message=>status(message))}
+async function parseFile(f){const {parsePdf}=await parser();return parsePdf(f.bytes.slice(0),f.name,message=>status(message))}
 $('#parse').addEventListener('click',async()=>{if(!file||busy)return;setBusy(true);$('#result').hidden=true;army=null;status('正在浏览器内解析 PDF、关联中文数据…');try{show(await parseFile(file))}catch(e){status(e.message,true)}finally{setBusy(false)}});
 $('#json-file').addEventListener('change',async e=>{try{show(JSON.parse(await e.target.files[0].text()))}catch(error){status(error.message,true)}});
 function download(content,type,name){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000)}

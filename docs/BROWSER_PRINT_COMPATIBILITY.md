@@ -55,6 +55,58 @@ PDF.js 提供 TextItem 的字符串、字体标识、变换和几何信息，并
 当前站点仍只要求上传一个军表 PDF，不增加卡库或其他参考文件上传要求。
 对于第三方已经生成的 PDF，本项目只能读取文件中实际存在的信息，无法通过调整自己的 window.print 来统一其上游生成过程。
 
+## 后续样本：混合页面、文件读取与文字转曲
+
+一份单页军表把3个单位面板和词条表放在同一页。旧代码检测到 Keyword Glossary 后
+将整页交给词条分支，因而漏掉单位。现按标题位置划分页面区域，先读上方完整面板，
+再读下方两栏词条；得到3个单位、4条武器、307分和9条词条。参数未知仍进待核对区。
+
+浏览器的 NotReadableError 发生在读取 File 字节时，不表示PDF语法或单位版式错误。
+W3C File API列出的原因包括文件快照变化、文件被移动及访问/占用问题。[6]
+入口现于选择或拖入时立即读取，缓存到内存，再加载解析模块；提供FileReader回退、
+选择竞态隔离及同文件重试。每次解析使用字节副本。若OS仍拒绝读取，说明另存到
+普通本地目录后重新选择，网页不绕过OS权限。本机可读取一个只读文件不能证明用户
+当时具体是哪种权限/快照问题，也不能把只读属性等同于不可读。
+
+另一份由 Microsoft: Print To PDF 生成的8页样本，全部页面合计可提取字符为0；
+第一页图像对象为0、曲线路径2691个、矩形806个。对照的Skia/PDF文件单页有4432个
+可提取字符。这说明该样本的主体文字已被描成矢量轮廓，不能称为整页截图或扫描件。
+正文后面的卡面页确有图像对象，因此一个PDF也可以混用文字、曲线和图片。
+本轮按用户要求不引入OCR：删除试验依赖及构建内容，保留明确的缺少文字层提示。
+
+### PDF里的文字、轮廓与图像
+
+PDF主要描述页面怎么画，不等同于Word中的段落、表格或HTML中的DOM。
+同样看起来是字，可以有不同表示：
+
+| 表示 | 文件保存什么 | 对本项目的含义 |
+| --- | --- | --- |
+| 文字对象 | 字符编码、字体、位置，配合Unicode映射等信息 | 通常可提取，但仍需重建行、表格和语义 |
+| 矢量轮廓 | 字形的线段和曲线，没有可用的字符表示 | 放大可清晰，仍不能按文字读取 |
+| 位图 | 像素，例如卡面照片或扫描图 | 单靠图片无法直接提取字符 |
+| 图片/轮廓与隐藏文字混合 | 可见画面外另有可提取文字 | OCR等工具可补出此类表示，但其识别值需要核对 |
+
+字体内部的字形本来也可由轮廓描述，关键是PDF是否仍保留文字对象与字符语义，
+不能根据是否使用矢量字形就判断文字层丢失。另有文字对象却缺少正确字符映射的
+情况：可能显示正常、复制乱码，和本次完全没有字符是不同故障。
+文本转轮廓会保留字形外观而失去文本编辑属性，Adobe文档有明确说明。[7]
+PDF结构、字符映射和不可见文本的规范说明参见PDF Association资料。[8]
+能否复制文字、能否编辑文字和是否受权限限制也是不同问题；PDF并非天生不可修改。
+
+### 为什么同样点“打印”会不一样
+
+`window.print()`触发打印，但最终目标可能是浏览器内置的Save as PDF，
+也可能是系统中的Microsoft Print to PDF虚拟打印机；二者是不同导出路径。[9]
+本样本的Producer字段证实它经过微软虚拟打印机，对照经过Skia。
+据此可判断本次走了不同的生成路径；仅凭最终PDF不能确定是哪一个中间环节
+把文字转成轮廓，也不能推导所有Microsoft Print to PDF文件都不保留文字。
+操作系统打印管线、应用提交的文字/绘图命令、字体处理和驱动转换均可能影响输出。
+Windows的XPS/GDI路径与驱动转换机制见Microsoft文档。[10]
+
+当前实用建议：回到原始网页，打印目标优先选浏览器内置“另存为 PDF / Save as PDF”，
+保存后用鼠标选择文字、Ctrl+F搜索单位名并复制核对。若已经转曲，将旧PDF再次另存或
+改后缀不能补回缺失的字符语义；优先从原页面重新导出，后续再考虑独立OCR流程。
+
 ## 回归与发布
 
 运行 `node armylist-app/tests/text-fragments.cjs`；可通过 LEGION_MOBILE_PDF 提供仓库外样本，LEGION_EMPIRE_PDF 提供桌面对照。
@@ -68,3 +120,8 @@ PDF.js 提供 TextItem 的字符串、字体标识、变换和几何信息，并
 3. MDN，Printing：<https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Media_queries/Printing>
 4. Mozilla PDF.js API，TextItem / TextStyle：<https://mozilla.github.io/pdf.js/api/draft/api.js.html>
 5. Playwright，page.pdf：<https://playwright.dev/docs/api/class-page#page-pdf>
+6. W3C File API，Errors：<https://www.w3.org/TR/FileAPI/#errorsAndExceptions>
+7. Adobe，Create paths from text outlines：<https://helpx.adobe.com/indesign/desktop/create-lines-and-shapes/combine-and-convert-paths/create-paths-from-text-outlines.html>
+8. PDF Association，Tagged PDF Best Practice Guide：<https://pdfa.org/download-area/publications/Tagged-PDF-Best-Practice-Guide.pdf>
+9. CFPB，How to save a PDF of a web page：<https://www.consumerfinance.gov/consumer-tools/save-as-pdf-instructions/>
+10. Microsoft，Printing documents overview：<https://learn.microsoft.com/en-us/dotnet/desktop/wpf/documents/printing-overview>

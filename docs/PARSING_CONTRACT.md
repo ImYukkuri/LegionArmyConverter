@@ -16,6 +16,13 @@ Never replace layout parsing with card-specific or filename-specific guesses.
    a font name, resource id, browser or catalog keyword list. A glossary continuation
    may omit its title; require the preceding glossary page and at least two styled
    `Heading.` entries. Preserve original English spacing and unknown headings.
+   Page roles are not mutually exclusive: if a glossary title follows unit panels
+   on the same page, parse the panels wholly above the title before reading the
+   glossary below it. Never feed unit rows into glossary entries. Continuation
+   pages without a title retain the existing previous-page/style requirement.
+   If all readable pages lack text and no units are found, report missing text
+   separately from an unsupported text-bearing layout. Do not start OCR or guess
+   units from vector paths. Return the re-export guidance in both adapters.
 2. Read each panel within its own bounds. Keep wrapped command title/pip and owner
    columns separate. Unit stats have seven columns, weapons four columns. The
    three tail labels Keywords, From upgrades and Upgrades are independently
@@ -61,6 +68,17 @@ Never replace layout parsing with card-specific or filename-specific guesses.
    ordinary empty values; they do not render review panels or parsing warnings.
    Keep review records in JSON so returning to extraction loses no information.
 
+File acquisition is an entry-page responsibility, separate from the parser.
+Read selected/dropped files immediately and cache their bytes in browser memory;
+do not wait for module downloads before reading an OS-backed File reference.
+Allow a second FileReader attempt for transient read failures. Denied, missing or
+invalidated files require re-selection, not a PDF-layout fallback. Clear stale
+army data on new PDF selection and prevent an older asynchronous read from
+replacing a newer selection. Reset the picker so choosing the same file retries.
+Pass a fresh byte copy into each parser call because PDF.js may transfer its
+buffer to a worker; repeated extraction must not reuse a detached buffer.
+File-size limits apply before reading, and no file bytes are sent to a server.
+
 Python and browser adapters must agree on family tables, split boundaries,
 canonical identifiers, parameter values and reviewed PDF outcomes. Reference PDFs
 and generated test output stay outside the repository. Existing regression suites
@@ -76,6 +94,13 @@ never infer missing selected cards from the catalog. Existing desktop fixtures m
 retain their results. Both Python and browser share these observable rules, even
 though pdfplumber already assembles table text. See BROWSER_PRINT_COMPATIBILITY.md
 for tested boundaries and future compatibility tiers.
+
+`tests/import-reliability.cjs` covers cached bytes, transferred buffers, transient
+read fallback, denied access, stale selection, same-file retry and size limits.
+Optional private `LEGION_MIXED_PDF` covers a one-page unit/glossary export: 3 units,
+4 weapons, 307 points, 9 glossary entries with Python/browser parity. Optional
+`LEGION_OUTLINED_PDF` verifies a no-text document gets the specific diagnosis and
+does not load OCR. Source files and generated armies remain outside Git.
 
 Symbol contract: operative uses the chevron `b` glyph and block uses the shield
 `s` glyph of the retained Legion font. SVG ids and accessible labels retain their

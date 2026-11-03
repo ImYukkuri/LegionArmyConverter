@@ -270,13 +270,14 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
   const doc=await getDocument({data:bytes,cMapUrl:new URL('./vendor/pdfjs/cmaps/',import.meta.url).href,cMapPacked:true,standardFontDataUrl:new URL('./vendor/pdfjs/standard_fonts/',import.meta.url).href,wasmUrl:new URL('./vendor/pdfjs/wasm/',import.meta.url).href,isEvalSupported:false}).promise;
   try{
     if(doc.numPages>50)throw new Error('当前仅支持50页以内的军表。');
-    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2.3',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
-    let previousGlossary=false,headingFonts=new Set();
+    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2.4',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
+    let previousGlossary=false,headingFonts=new Set(),textPages=0;
     for(let n=1;n<=doc.numPages;n++){
       onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const pdfPage=await doc.getPage(n);let geo;
       try{geo=await pageGeometry(pdfPage)}catch(error){
-        const content=await pdfPage.getTextContent().catch(()=>({items:[]}));army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
+        const content=await pdfPage.getTextContent().catch(()=>({items:[]}));if(content.items.some(t=>t.str?.trim()))textPages++;army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
       }
+      if(geo.items.length)textPages++;
       const glossaryColumns=[[0,geo.width/2],[geo.width/2,geo.width]].map(([x0,x1])=>lines(geo.items.filter(t=>t.x>=x0&&t.x<x1)));
       const pageRows=glossaryColumns.flat(),text=pageRows.map(r=>r.text).join(' '),glossaryTitle=pageRows.find(r=>r.text==='Keyword Glossary');
       if(glossaryTitle)headingFonts=new Set(glossaryTitle.items.map(t=>t.font));
@@ -286,14 +287,16 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
       if(text.includes('COMMAND CARDS')){
         for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}
       }else if(isGlossary){
-        for(const column of glossaryColumns){let current=null;for(const row of column){if(isHeading(row)){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
+        const glossaryTop=glossaryTitle?.y??-Infinity;
+        for(const box of geo.panels.filter(b=>b[3]-b[1]>100&&b[3]<glossaryTop)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}
+        for(const column of glossaryColumns){let current=null;for(const row of column.filter(r=>r.y>glossaryTop)){if(isHeading(row)){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
       }else{
         const before=army.units.length,reviewBefore=army.reviewItems.length;
         for(const box of geo.panels.filter(b=>b[3]-b[1]>100)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}
         if(army.units.length===before&&army.reviewItems.length===reviewBefore)army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'此页未能识别为单位、战术卡或词条表，已保留可提取的文字。',rawText:lines(geo.items).map(r=>r.text).join('\n')||'此页没有可提取的文字，可能为扫描页。',locations:[{page:n,context:'整页'}]});
       }
     }
-    if(!army.units.length)throw new Error('未识别到 Legion HQ 属性表。当前不支持扫描军表或其他导出版式。');
+    if(!army.units.length)throw new Error(textPages?'未识别到 Legion HQ 属性表，请确认导出内容包含单位属性表。':'PDF 没有可提取的文字层：文字可能已转为轮廓或图片。当前未启用 OCR。请回到原始网页，在浏览器打印目标中选择“另存为 PDF / Save as PDF”，保存后再导入。');
     normalizeGroupPoints(army.units,army.diagnostics);
     if(army.reviewItems.length)army.diagnostics.push({level:'warning',code:'partial_import',message:'部分面板无法完整解析，已保留可读单位与原文；请查看待核对内容，费用合计可能不完整。'});
     if(!army.commandCards.length)army.diagnostics.push({level:'warning',code:'commands_absent',message:'未识别到文字命令卡面板；军表其他内容仍可使用。'});
