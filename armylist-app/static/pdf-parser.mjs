@@ -48,6 +48,9 @@ function lines(items){
 }
 const inside=(t,b)=>t.x+t.width/2>b[0]-.5&&t.x+t.width/2<b[2]+.5&&t.y>b[1]&&t.y<b[3]+.5;
 const textIn=(items,b)=>lines(items.filter(t=>inside(t,b))).map(r=>r.text).join(' ');
+const rowItem=row=>({text:row.text,x:Math.min(...row.items.map(t=>t.x)),y:row.y,
+  width:Math.max(...row.items.map(t=>t.x+t.width))-Math.min(...row.items.map(t=>t.x)),
+  height:Math.max(...row.items.map(t=>t.height)),font:row.items[0].font});
 function uniqueBoxes(boxes){return [...new Map(boxes.map(b=>[b.map(v=>Math.round(v*100)/100).join(','),b])).values()]}
 async function pageGeometry(page){
   const viewport=page.getViewport({scale:1}),content=await page.getTextContent(),operators=await page.getOperatorList();
@@ -74,6 +77,29 @@ async function pageGeometry(page){
 function cellFor(t,rects){
   return rects.filter(b=>inside(t,b)).sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]))[0];
 }
+function tableTextItems(items,rects){
+  // TextItem boundaries are PDF font/encoding boundaries, not word boundaries.
+  // Reconstruct within the smallest cell only; never merge neighbouring columns.
+  const cells=new Map(),unplaced=[];
+  for(const item of items){const cell=cellFor(item,rects);if(!cell){unplaced.push(item);continue}const key=cell.join(',');if(!cells.has(key))cells.set(key,[]);cells.get(key).push(item)}
+  return [...unplaced,...[...cells.values()].flatMap(group=>lines(group).map(rowItem))];
+}
+function unitHeader(items,box,bottom){
+  const header=items.filter(t=>t.y<bottom),size=Math.max(0,...header.map(t=>t.height));
+  const large=header.filter(t=>t.height>=size*.85),small=header.filter(t=>t.height<size*.85);
+  const meta=lines(small).map(r=>r.text).join(' ');
+  if(/\d+\s*pts/.test(meta))return {title:lines(large).map(r=>r.text).join(' '),meta};
+  const split=box[0]+(box[2]-box[0])*.66;
+  return {title:textIn(header,[box[0],box[1],split,bottom]),meta:textIn(header,[split,box[1],box[2],bottom])};
+}
+export function glossaryHeading(row,headingFonts){
+  const at=row.text.indexOf('.'),label=row.text.slice(0,at).trim();
+  if(at<1||at>90||!/^\p{L}[\p{L}\p{N}\s:’'()/+\-–]*$/u.test(label))return null;
+  let letters=0,styled=0;
+  // Numerals/punctuation may use separate font subsets; compare letters only.
+  for(const item of row.items){const prefix=item.text.split('.',1)[0],count=(prefix.match(/\p{L}/gu)||[]).length;letters+=count;if(headingFonts.has(item.font))styled+=count;if(item.text.includes('.'))break}
+  return letters&&styled===letters?label:null;
+}
 export function parseUnitSections(tail){
   const fields={keywords:'',fromUpgrades:'',upgrades:''},labels={'Keywords:':'keywords','From upgrades:':'fromUpgrades','Upgrades:':'upgrades'};
   const matches=[...tail.matchAll(/Keywords:|From upgrades:|Upgrades:/g)];
@@ -81,16 +107,15 @@ export function parseUnitSections(tail){
   return {keywords:splitKeywords(fields.keywords),fromUpgrades:splitKeywords(fields.fromUpgrades),upgrades:splitKeywords(fields.upgrades)};
 }
 function unitPanel(geo,box,page,index){
-  const items=geo.items.filter(t=>inside(t,box)),mini=items.find(t=>t.text==='Mini');if(!mini)return null;
-  const statHeads=['Mini','HP','Def','Cor','Spd','Hit Surge','Def Surge'].map(name=>items.find(t=>t.text===name&&Math.abs(t.y-mini.y)<2));
+  const items=geo.items.filter(t=>inside(t,box)),tableItems=tableTextItems(items,geo.rects),mini=tableItems.find(t=>t.text==='Mini');if(!mini)return null;
+  const statHeads=['Mini','HP','Def','Cor','Spd','Hit Surge','Def Surge'].map(name=>tableItems.find(t=>t.text===name&&Math.abs(t.y-mini.y)<2));
   if(statHeads.some(t=>!t))throw new Error(`第${page}页的7列属性表不完整。`);
   const headerCell=cellFor(mini,geo.rects);if(!headerCell)throw new Error('未能定位属性表单元格。');
-  const split=box[0]+(box[2]-box[0])*.66;
-  const title=textIn(items,[box[0]+4,box[1],split,headerCell[1]]),meta=textIn(items,[split,box[1],box[2]-4,headerCell[1]]);
+  const {title,meta}=unitHeader(items,box,headerCell[1]);
   const points=meta.match(/(\d+)\s*pts/),rank=meta.match(/COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY/);
   if(!points)throw new Error(`第${page}页单位费用缺失。`);
   let [name,subtitle='']=title.split(' — ');if(title.endsWith(' (counterpart)')){name=title.slice(0,-14);subtitle='counterpart'}
-  const wh=items.find(t=>t.text==='Weapon'&&t.y>mini.y),kh=items.find(t=>/^(Keywords:|From upgrades:|Upgrades:)/.test(t.text)&&t.y>(wh?.y||mini.y));
+  const wh=tableItems.find(t=>t.text==='Weapon'&&t.y>mini.y),kh=lines(items.filter(t=>t.y>(wh?.y||mini.y))).filter(r=>/^(Keywords:|From upgrades:|Upgrades:)/.test(r.text)).map(rowItem)[0];
   const tailTop=kh?kh.y-kh.height:box[3];
   const rows=[statHeads.map(t=>t.text)];
   const values=statHeads.map(t=>{
@@ -99,7 +124,7 @@ function unitPanel(geo,box,page,index){
   });rows.push(values);
   const weapons=[];
   if(wh){
-  const weaponHeads=['Weapon','Range','Dice','Keywords'].map(n=>items.find(t=>t.text===n&&Math.abs(t.y-wh.y)<2));
+  const weaponHeads=['Weapon','Range','Dice','Keywords'].map(n=>tableItems.find(t=>t.text===n&&Math.abs(t.y-wh.y)<2));
   if(weaponHeads.some(t=>!t))throw new Error(`${name} 的武器4列表头不完整。`);
   const columns=weaponHeads.map(t=>cellFor(t,geo.rects));if(columns.some(b=>!b))throw new Error('未能定位武器列。');
   rows.push(weaponHeads.map(t=>t.text));
@@ -131,8 +156,8 @@ export function parseUnitPanel(geo,box,page,index,reviewItems=[]){
   try{return unitPanel(geo,box,page,index)||recoverUnit('未能识别单位属性表。')}
   catch(error){return recoverUnit(error.message)}
   function recoverUnit(message){
-    const mini=items.find(t=>t.text==='Mini'),header=items.filter(t=>t.y<(mini?mini.y-mini.height:box[1]+32)),split=box[0]+(box[2]-box[0])*.66;
-    const title=textIn(header,[box[0],box[1],split,box[3]])||`未完整解析的单位 ${index}`,meta=textIn(header,[split,box[1],box[2],box[3]]),points=meta.match(/(\d+)\s*pts/),rank=meta.match(/COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY/);
+    const mini=tableTextItems(items,geo.rects).find(t=>t.text==='Mini'),header=unitHeader(items,box,mini?mini.y-mini.height:box[1]+32);
+    const title=header.title||`未完整解析的单位 ${index}`,meta=header.meta,points=meta.match(/(\d+)\s*pts/),rank=meta.match(/COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY/);
     const [name,subtitle='']=title.split(' — '),rawText=lines(items).map(r=>r.text).join('\n'),id=`unit-${index}`,start=rawText.search(/Keywords:|From upgrades:|Upgrades:/),tail=start<0?'':clean(rawText.slice(start));
     reviewItems.push({category:'parsing',code:'unit_partial',title:name,message,rawText,locations:[{page,unitId:id,unitName:name,context:'单位面板'}]});
     return {id,name,subtitle,rank:rank?rank[0][0]+rank[0].slice(1).toLowerCase():null,points:points?Number(points[1]):null,stats:{},weapons:[],...parseUnitSections(tail),parseStatus:'partial',provenance:{page,bbox:box,title,meta,tail,rawText}};
@@ -245,18 +270,18 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
   const doc=await getDocument({data:bytes,cMapUrl:new URL('./vendor/pdfjs/cmaps/',import.meta.url).href,cMapPacked:true,standardFontDataUrl:new URL('./vendor/pdfjs/standard_fonts/',import.meta.url).href,wasmUrl:new URL('./vendor/pdfjs/wasm/',import.meta.url).href,isEvalSupported:false}).promise;
   try{
     if(doc.numPages>50)throw new Error('当前仅支持50页以内的军表。');
-    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
-    let previousGlossary=false,glossaryFont;
+    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2.3',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
+    let previousGlossary=false,headingFonts=new Set();
     for(let n=1;n<=doc.numPages;n++){
       onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const pdfPage=await doc.getPage(n);let geo;
       try{geo=await pageGeometry(pdfPage)}catch(error){
         const content=await pdfPage.getTextContent().catch(()=>({items:[]}));army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
       }
-      const text=geo.items.map(t=>t.text).join(' ');
-      glossaryFont=geo.items.find(t=>t.text.includes('Keyword Glossary'))?.font||glossaryFont;
       const glossaryColumns=[[0,geo.width/2],[geo.width/2,geo.width]].map(([x0,x1])=>lines(geo.items.filter(t=>t.x>=x0&&t.x<x1)));
-      const isHeading=row=>{const prefix=row.items.filter(t=>t.font===glossaryFont).map(t=>t.text).join('');return prefix.includes('.')&&prefix.length>2};
-      const isGlossary=text.includes('Keyword Glossary')||previousGlossary&&glossaryColumns.flat().filter(isHeading).length>=2&&!geo.items.some(t=>t.text==='Mini')&&!text.includes('COMMAND CARDS');previousGlossary=isGlossary;
+      const pageRows=glossaryColumns.flat(),text=pageRows.map(r=>r.text).join(' '),glossaryTitle=pageRows.find(r=>r.text==='Keyword Glossary');
+      if(glossaryTitle)headingFonts=new Set(glossaryTitle.items.map(t=>t.font));
+      const isHeading=row=>glossaryHeading(row,headingFonts);
+      const isGlossary=!!glossaryTitle||previousGlossary&&pageRows.filter(isHeading).length>=2&&!/\bMini\b/.test(text)&&!text.includes('COMMAND CARDS');previousGlossary=isGlossary;
       if(n===1)army.title=textIn(geo.items,[0,0,geo.width,30])||army.title;
       if(text.includes('COMMAND CARDS')){
         for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}

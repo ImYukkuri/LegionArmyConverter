@@ -11,7 +11,7 @@ const base=process.env.STATIC_BASE_URL||'http://127.0.0.1:5500/dist/';
     await page.goto(base);await page.locator('#catalog-status').filter({hasText:'503'}).waitFor();
     assert.equal(await page.locator('#catalog-file,[data-sample]').count(),0);
     const catalog=await page.evaluate(async()=>await(await fetch('catalog.json')).json());
-    assert.equal(catalog.commands.length,183);assert(catalog.keywords.length>=154);
+    assert.equal(catalog.commands.length,192);assert(catalog.keywords.length>=154);
     assert(!(JSON.stringify(catalog).includes('ocrEvidence')));assert(!(JSON.stringify(catalog).includes('referenceUrl')));
     for(const target of ['samples/test_armylist.pdf','unitcards/test.webp','tactical_card_origin/test.pdf','catalog-store.mjs']){
       const response=await page.request.get(new URL(target,base).href);assert.equal(response.status(),404,target);

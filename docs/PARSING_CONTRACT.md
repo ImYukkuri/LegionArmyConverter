@@ -4,13 +4,26 @@ This document defines the Legion HQ Stat Reference adapter. Changes must identif
 the affected stage, preserve the remaining stages and add a regression example.
 Never replace layout parsing with card-specific or filename-specific guesses.
 
-1. Read PDF text and geometry locally. Classify pages as unit panels, command
-   panels or glossary columns. A glossary continuation may omit its title; require
-   the preceding glossary page and at least two bold `Heading.` entries.
+1. Read PDF text and geometry locally. PDF text items are encoding/font fragments,
+   not words. Reconstruct lines within each glossary column and reconstruct table
+   headers within their smallest enclosing cell; retain raw fragments/geometry.
+   Never concatenate an entire page to recover words or merge neighbouring cells.
+   Classify pages using reconstructed labels, not individual TextItem strings.
+   Learn the glossary heading font group from its reconstructed title. Compare
+   letters before the first period against that group; digits and punctuation can
+   use separate subsets. Require a short label and matching letter styles; ordinary
+   body sentences and mixed-style prefixes are not new headings. Do not hardcode
+   a font name, resource id, browser or catalog keyword list. A glossary continuation
+   may omit its title; require the preceding glossary page and at least two styled
+   `Heading.` entries. Preserve original English spacing and unknown headings.
 2. Read each panel within its own bounds. Keep wrapped command title/pip and owner
    columns separate. Unit stats have seven columns, weapons four columns. The
    three tail labels Keywords, From upgrades and Upgrades are independently
-   optional. Empty labels do not invalidate a panel.
+   optional. Detect them on reconstructed panel-local lines. Empty labels do not
+   invalidate a panel. Separate title/subtitle and rank/points by relative type size
+   when the smaller role contains an explicit price; use the existing spatial split
+   only when that evidence is absent. Never clip a long title to a fixed width when
+   its role is distinguishable. Keep the full English name/title for catalog scope.
 3. Split lists at commas outside parentheses/brackets. Equip can carry a list of
    upgrade/slot names: Armament, Doctrine and the existing Bad Batch personnel
    continuations stay with Equip. Mercenary factions stay together. A following
@@ -53,6 +66,16 @@ canonical identifiers, parameter values and reviewed PDF outcomes. Reference PDF
 and generated test output stay outside the repository. Existing regression suites
 cover points, command wrapping, fallback text, tolerant import and layout; new
 parameter/glossary tests extend them instead of replacing them.
+
+Text-fragment regression: `tests/text-fragments.cjs` exercises shuffled character
+fragments, separate number/punctuation fonts, scaled cells, long titles, optional
+tails, unknown glossary headings and wrapped command headers. `LEGION_MOBILE_PDF`
+can supply the private Android Type3-font sample: 10 units, 27 weapons, 1000 points,
+44 glossary entries, no structural review items. It contains no command pages;
+never infer missing selected cards from the catalog. Existing desktop fixtures must
+retain their results. Both Python and browser share these observable rules, even
+though pdfplumber already assembles table text. See BROWSER_PRINT_COMPATIBILITY.md
+for tested boundaries and future compatibility tiers.
 
 Symbol contract: operative uses the chevron `b` glyph and block uses the shield
 `s` glyph of the retained Legion font. SVG ids and accessible labels retain their

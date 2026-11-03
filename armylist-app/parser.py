@@ -6,8 +6,27 @@ import re
 import pdfplumber
 from catalog import enrich,norm
 
-VERSION='legion-hq-stat-reference/v2.2'
+VERSION='legion-hq-stat-reference/v2.3'
 def clean(s):return re.sub(r'\s+',' ',s or '').strip()
+def glossary_heading(line,heading_fonts):
+    label,separator,_=line['text'].partition('.')
+    if not separator or not 1<=len(label)<=90 or not label[0].isalpha()or any(not(c.isalnum()or c.isspace()or c in ":’'()/+-–")for c in label):return None
+    letters=styled=0
+    for char in line['chars']:
+        if char['text']=='.':break
+        if char['text'].isalpha():
+            letters+=1
+            if char['fontname']in heading_fonts:styled+=1
+    return label.strip()if letters and letters==styled else None
+
+def unit_header(page,box,bottom):
+    header=page.crop((box[0]+2,box[1]+2,box[2]-2,bottom))
+    size=max((c['size']for c in header.chars),default=0)
+    def role(large):return clean(header.filter(lambda c:c.get('object_type')=='char'and(c.get('size',0)>=size*.85)==large).extract_text())
+    title,meta=role(True),role(False)
+    if re.search(r'\d+\s*pts',meta):return title,meta
+    split=box[0]+(box[2]-box[0])*.66
+    return clean(page.crop((box[0]+2,box[1]+2,split,bottom)).extract_text()),clean(page.crop((split,box[1]+2,box[2]-2,bottom)).extract_text())
 def comma_parts(text):
     parts=[];start=0;depth=0
     for i,c in enumerate(text):
@@ -81,9 +100,7 @@ def unit_panel(page,box,page_no,index):
     tables=[t for t in panel.find_tables()if t.extract()[0][0]=='Mini']
     if not tables:return None
     table=tables[0];rows=[[clean(v)for v in row if v is not None]for row in table.extract()]
-    split=box[0]+(box[2]-box[0])*.66
-    title=clean(page.crop((box[0]+5,box[1]+4,split,table.bbox[1])).extract_text())
-    meta=clean(page.crop((split,box[1]+4,box[2]-5,table.bbox[1])).extract_text())
+    title,meta=unit_header(page,box,table.bbox[1])
     points=re.search(r'(\d+)\s*pts',meta);rank=re.search(r'COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY',meta)
     if not points or len(rows[1])!=7:raise ValueError(f'第{page_no}页单位标题或7列属性表不完整。')
     name,subtitle=(title.split(' — ',1)if ' — 'in title else (title.removesuffix(' (counterpart)'),'counterpart')if title.endswith(' (counterpart)')else (title,''))
@@ -113,9 +130,7 @@ def parse_unit_panel(page,box,page_no,index,review_items):
     except (ValueError,IndexError,TypeError)as error:message=str(error)
     mini=next((c for c in panel.extract_words()if c['text']=='Mini'),None)
     bottom=mini['top']if mini else min(box[3]-2,box[1]+32)
-    split=box[0]+(box[2]-box[0])*.66
-    title=clean(page.crop((box[0]+2,box[1]+2,split,bottom)).extract_text())or f'未完整解析的单位 {index}'
-    meta=clean(page.crop((split,box[1]+2,box[2]-2,bottom)).extract_text())
+    title,meta=unit_header(page,box,bottom);title=title or f'未完整解析的单位 {index}'
     name,subtitle=title.split(' — ',1)if ' — 'in title else (title,'')
     points=re.search(r'(\d+)\s*pts',meta);rank=re.search(r'COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY',meta)
     start=re.search(r'Keywords:|From upgrades:|Upgrades:',raw);tail=clean(raw[start.start():])if start else '';uid=f'unit-{index}'
@@ -161,17 +176,14 @@ def parse_pdf(content,filename):
     with pdfplumber.open(io.BytesIO(content))as doc:
         if len(doc.pages)>50:raise ValueError('当前仅支持50页以内的军表。')
         army['source']['pageCount']=len(doc.pages)
-        previous_glossary=False
+        previous_glossary=False;heading_fonts=set()
         for number,page in enumerate(doc.pages,1):
             text=page.extract_text()or ''
             columns=[page.crop((x0,0,x1,page.height)).extract_text_lines(return_chars=True)for x0,x1 in ((0,page.width/2),(page.width/2,page.width))]
-            def heading(line):
-                prefix=''
-                for c in line['chars']:
-                    if 'Bold'not in c['fontname']:break
-                    prefix+=c['text']
-                return '.'in prefix and len(prefix)>2
-            is_glossary='Keyword Glossary'in text or previous_glossary and sum(heading(line)for col in columns for line in col)>=2 and 'Mini'not in text and 'COMMAND CARDS'not in text
+            glossary_title=next((line for col in columns for line in col if line['text']=='Keyword Glossary'),None)
+            if glossary_title:heading_fonts={c['fontname']for c in glossary_title['chars']}
+            def heading(line):return glossary_heading(line,heading_fonts)
+            is_glossary=bool(glossary_title)or previous_glossary and sum(bool(heading(line))for col in columns for line in col)>=2 and 'Mini'not in text and 'COMMAND CARDS'not in text
             previous_glossary=is_glossary
             if number==1:army['title']=clean(page.crop((0,0,page.width,30)).extract_text())or army['title']
             if 'COMMAND CARDS'in text:

@@ -55,6 +55,493 @@
       "keywords": []
     },
     {
+      "id": "empire_thrawn_architects_of_their_own_destruction",
+      "name": "Architects of Their Own Destruction",
+      "pips": 1,
+      "owner": "Grand Admiral Thrawn",
+      "orders": "1 Unit",
+      "description": "At the start of the Activation Phase, choose an enemy unit. If the chosen unit does not have a faceup Order token, assign it a faceup Order token from your opponent’s Order Pool, if able.\n\nThe first time your opponent chooses to activate a unit this Round, they may choose to activate the chosen unit. If they do not, the chosen unit may not activate using a faceup Order token until your Opponent has no Order tokens in their Order Pool or on Command Cards, and has no other units with faceup Order tokens.",
+      "weapons": [],
+      "zh": {
+        "name": "亲手筑造他们的失败",
+        "owner": "索龙元帅",
+        "orders": "1支单位",
+        "description": "在激活阶段开始时，选择一支敌方单位。若所选单位没有正面朝上的命令标记，则在可能的情况下，从对手的命令池中为其分配一个正面朝上的命令标记。\n\n本轮对手第一次选择激活单位时，可以选择激活该单位。若对手没有这样做，则该单位不能使用正面朝上的命令标记激活，直到对手的命令池和命令卡上均没有命令标记，且没有其他拥有正面朝上命令标记的单位。",
+        "keywords": []
+      },
+      "keywords": [],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_tagge_i_have_graphs_and_the_command",
+      "name": "I Have Graphs and the Command",
+      "pips": 1,
+      "owner": "General Tagge",
+      "orders": "1 Unit",
+      "description": "General Tagge may remove any number of tokens from Logistical Prowess to gain the matching tokens.\n\nAt the start of the Activation Phase, General Tagge may make a Speed-2 move.",
+      "weapons": [],
+      "zh": {
+        "name": "我有图表，也有指挥权",
+        "owner": "塔格将军",
+        "orders": "1支单位",
+        "description": "塔格将军可以从“后勤专长”上移除任意数量的标记，获得对应的标记。\n\n在激活阶段开始时，塔格将军可以进行一次速度2移动。",
+        "keywords": []
+      },
+      "keywords": [],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_tarkin_moment_of_triumph",
+      "name": "Moment of Triumph",
+      "pips": 1,
+      "owner": "Grand Moff Tarkin",
+      "orders": "No Units",
+      "description": "You must Divulge this card.\n\nDivulge: Resolve Setup Effects step.\nPermanent. Darth Vader gains Guardian 4: Grand Moff Tarkin and can benefit from Backup. While defending, Grand Moff Tarkin can benefit from Backup provided by Darth Vader even if the attacking unit’s unit leader is within {@icon.range-2} of Grand Moff Tarkin.\n\nWhile Grand Moff Tarkin is Contesting an Objective token that is not in allied Territory, allied Trooper units within {@icon.range-2} of him have Disciplined 1.",
+      "weapons": [],
+      "zh": {
+        "name": "胜利时刻",
+        "owner": "塔金大星区总督",
+        "orders": "无单位",
+        "description": "你必须揭示此卡。\n\n揭示：结算设置效果步骤。\n永久。达斯·维达获得“护卫4：Grand Moff Tarkin”，且可以从守护中受益。塔金大星区总督防御时，即使攻击单位的单位队长位于塔金大星区总督的{@icon.range-2}内，他仍可以从达斯·维达提供的守护中受益。\n\n当塔金大星区总督正在争夺一个不在友方领土内的目标标记时，他的{@icon.range-2}内的友方士兵单位拥有纪律1。",
+        "keywords": [
+          {
+            "id": "divulge",
+            "raw": "Divulge",
+            "label": "揭示",
+            "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+            "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+            "timing": [
+              "setup"
+            ],
+            "value": null
+          },
+          {
+            "id": "permanent",
+            "raw": "Permanent",
+            "label": "永久",
+            "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+            "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+            "timing": [
+              "global",
+              "end_round"
+            ],
+            "value": null
+          },
+          {
+            "id": "guardian",
+            "raw": "Guardian 4: Grand Moff Tarkin",
+            "label": "护卫4：Grand Moff Tarkin",
+            "summary": "距离1内且视线中的士兵防御远程攻击时，此单位可将X个命中分配给自己，正常进行防御并获得1个压制；压力值大于等于勇气值时不能使用。",
+            "full": "在拥有护卫X关键词的单位 1内且在视线中的友方士兵单位防御远程攻击时， 它可以在修正攻击骰子步骤期间取消最多X个命中 【命中图标】 结果。 每有一个以此方式取消的命中 【命中图标】 结果， 带有护卫X关键词的单位就投掷1个与其单位卡牌上的防御骰子相同的防御骰子。 在根据其激增图或使用激增标记转化任何防御激增 【防御激增图标】 结果后， 带有护卫X关键词的单位获得1个压制标记， 然后每有一个空白结果， 就承受1点伤害。 即使使用了护卫X关键词， 防御单位也如常获得一个压制标记。如果防御单位本身也有护卫X关键词， 则其他单位不能对该防御单位使用护卫X。 如果多个友方单位在攻击期间都能够使用护卫X关键词， 则控制这些单位的玩家先声明哪个单位使用护卫X关键词并结算其能力， 然后再选择是否声明另一个单位使用护卫X关键词。如果单位拥有的压制标记数量大于等于其 【图标】， 则该单位不能使用护卫X。穿刺X关键词能够用于取消使用护卫X的单位掷出的防御骰子上的格挡 【格挡图标】 结果； 将取消的格挡【格挡图标】 结果视为空白结果。 以此方式使用穿刺X后， 任何未使用的穿刺X值仍然能够用于取消防御单位掷出的格挡 【格挡图标】 结果。此外， 带有护卫X关键词的单位不能从守护受益， 并且忽略提供守护时的【军团军阶图标】 军阶要求。",
+            "timing": [
+              "defense"
+            ],
+            "value": "4",
+            "parameter": "Grand Moff Tarkin",
+            "parameterKind": "unit"
+          },
+          {
+            "id": "disciplined",
+            "raw": "Disciplined 1",
+            "label": "纪律1",
+            "summary": "接收命令后，移除X个压制标记。",
+            "full": "带有纪律X关键词的单位接收命令后， 它可以移除最多X个压制标记。",
+            "timing": [
+              "command"
+            ],
+            "value": "1"
+          }
+        ]
+      },
+      "keywords": [
+        {
+          "id": "divulge",
+          "raw": "Divulge",
+          "label": "揭示",
+          "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+          "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+          "timing": [
+            "setup"
+          ],
+          "value": null
+        },
+        {
+          "id": "permanent",
+          "raw": "Permanent",
+          "label": "永久",
+          "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+          "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+          "timing": [
+            "global",
+            "end_round"
+          ],
+          "value": null
+        },
+        {
+          "id": "guardian",
+          "raw": "Guardian 4: Grand Moff Tarkin",
+          "label": "护卫4：Grand Moff Tarkin",
+          "summary": "距离1内且视线中的士兵防御远程攻击时，此单位可将X个命中分配给自己，正常进行防御并获得1个压制；压力值大于等于勇气值时不能使用。",
+          "full": "在拥有护卫X关键词的单位 1内且在视线中的友方士兵单位防御远程攻击时， 它可以在修正攻击骰子步骤期间取消最多X个命中 【命中图标】 结果。 每有一个以此方式取消的命中 【命中图标】 结果， 带有护卫X关键词的单位就投掷1个与其单位卡牌上的防御骰子相同的防御骰子。 在根据其激增图或使用激增标记转化任何防御激增 【防御激增图标】 结果后， 带有护卫X关键词的单位获得1个压制标记， 然后每有一个空白结果， 就承受1点伤害。 即使使用了护卫X关键词， 防御单位也如常获得一个压制标记。如果防御单位本身也有护卫X关键词， 则其他单位不能对该防御单位使用护卫X。 如果多个友方单位在攻击期间都能够使用护卫X关键词， 则控制这些单位的玩家先声明哪个单位使用护卫X关键词并结算其能力， 然后再选择是否声明另一个单位使用护卫X关键词。如果单位拥有的压制标记数量大于等于其 【图标】， 则该单位不能使用护卫X。穿刺X关键词能够用于取消使用护卫X的单位掷出的防御骰子上的格挡 【格挡图标】 结果； 将取消的格挡【格挡图标】 结果视为空白结果。 以此方式使用穿刺X后， 任何未使用的穿刺X值仍然能够用于取消防御单位掷出的格挡 【格挡图标】 结果。此外， 带有护卫X关键词的单位不能从守护受益， 并且忽略提供守护时的【军团军阶图标】 军阶要求。",
+          "timing": [
+            "defense"
+          ],
+          "value": "4",
+          "parameter": "Grand Moff Tarkin",
+          "parameterKind": "unit"
+        },
+        {
+          "id": "disciplined",
+          "raw": "Disciplined 1",
+          "label": "纪律1",
+          "summary": "接收命令后，移除X个压制标记。",
+          "full": "带有纪律X关键词的单位接收命令后， 它可以移除最多X个压制标记。",
+          "timing": [
+            "command"
+          ],
+          "value": "1"
+        }
+      ],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_thrawn_we_must_wait_and_watch",
+      "name": "We Must Wait and Watch",
+      "pips": 2,
+      "owner": "Grand Admiral Thrawn",
+      "orders": "No Units",
+      "description": "Divulge: Resolve Setup Effects step.\nPermanent. Choose 3 allied {@icon.faction-empire} units. The chosen units gain Reinforcements this Game.\n\nThis card cannot be selected during the Command Phase. When an enemy unit ends its Activation, you may discard this card. If you do, choose a non-Suppressed or non-Panicked allied unit within {@icon.range-2} of the enemy unit. The chosen unit may make a free Move action or Attack action.",
+      "weapons": [],
+      "zh": {
+        "name": "我们要静观其变",
+        "owner": "索龙元帅",
+        "orders": "无单位",
+        "description": "揭示：结算设置效果步骤。\n永久。选择3支友方{@icon.faction-empire}单位。所选单位在本局游戏中获得增援。\n\n此卡不能在命令阶段被选择。当一支敌方单位结束激活时，你可以弃置此卡。若如此做，选择该敌方单位{@icon.range-2}内一支未被压制或未恐慌的友方单位。所选单位可以进行一次免费移动行动或攻击行动。",
+        "keywords": [
+          {
+            "id": "divulge",
+            "raw": "Divulge",
+            "label": "揭示",
+            "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+            "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+            "timing": [
+              "setup"
+            ],
+            "value": null
+          },
+          {
+            "id": "permanent",
+            "raw": "Permanent",
+            "label": "永久",
+            "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+            "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+            "timing": [
+              "global",
+              "end_round"
+            ],
+            "value": null
+          },
+          {
+            "id": "reinforcements",
+            "raw": "Reinforcements",
+            "label": "增援",
+            "summary": "第一回合结束阶段开始时，可进行1次速度1移动。",
+            "full": "在第一轮的 结束阶段 开始时， 带有增援关键词的单位可以进行一次速度1移动。",
+            "timing": [
+              "end_round"
+            ],
+            "value": null
+          }
+        ]
+      },
+      "keywords": [
+        {
+          "id": "divulge",
+          "raw": "Divulge",
+          "label": "揭示",
+          "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+          "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+          "timing": [
+            "setup"
+          ],
+          "value": null
+        },
+        {
+          "id": "permanent",
+          "raw": "Permanent",
+          "label": "永久",
+          "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+          "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+          "timing": [
+            "global",
+            "end_round"
+          ],
+          "value": null
+        },
+        {
+          "id": "reinforcements",
+          "raw": "Reinforcements",
+          "label": "增援",
+          "summary": "第一回合结束阶段开始时，可进行1次速度1移动。",
+          "full": "在第一轮的 结束阶段 开始时， 带有增援关键词的单位可以进行一次速度1移动。",
+          "timing": [
+            "end_round"
+          ],
+          "value": null
+        }
+      ],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。",
+          "原图写作 non-Suppressed or non-Panicked；按原文保留 or（或），未擅自改为 and（且）。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_highcommand_the_empire_does_not_tolerate_failure",
+      "name": "The Empire Does Not Tolerate Failure",
+      "pips": 2,
+      "owner": "Imperial High Command",
+      "orders": "2 {@icon.faction-empire} Units",
+      "description": "When a unit issued an Order with this card starts its Activation this Round, it may gain 2 Aim tokens. If it does, at the end of that unit’s Activation, if it did not defeat at least 1 enemy unit during that Activation, it suffers 2 Wounds.\n\nDuring the End Phase, if 1 or more units issued an Order with this card defeated 1 or more enemy {@icon.rank-commander} or {@icon.rank-operative} units this Round, you score 1 VP.",
+      "weapons": [],
+      "zh": {
+        "name": "帝国不容许失败",
+        "owner": "帝国最高统帅部",
+        "orders": "2支{@icon.faction-empire}单位",
+        "description": "本轮通过此卡获发命令的单位开始激活时，可以获得2个瞄准标记。若如此做，则在该单位激活结束时，若它在此次激活期间没有击败至少1支敌方单位，它受到2点伤害。\n\n在结束阶段，若至少1支通过此卡获发命令的单位在本轮击败了至少1支敌方{@icon.rank-commander}或{@icon.rank-operative}单位，你获得1胜利分。",
+        "keywords": []
+      },
+      "keywords": [],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_tarkin_fear_will_keep_them_in_line",
+      "name": "Fear Will Keep Them in Line",
+      "pips": 3,
+      "owner": "Grand Moff Tarkin",
+      "orders": "3 Units",
+      "description": "Divulge: Resolve Setup Effects step.\nPermanent. When an allied {@icon.faction-empire} unit is issued an Order, it has Demoralize 1 until the end of the Round.\n\nAllied {@icon.faction-empire} units have Demoralize 1 this Round.",
+      "weapons": [],
+      "zh": {
+        "name": "恐惧使他们服从",
+        "owner": "塔金大星区总督",
+        "orders": "3支单位",
+        "description": "揭示：结算设置效果步骤。\n永久。当一支友方{@icon.faction-empire}单位获发命令时，它拥有震慑1，直到本轮结束。\n\n本轮友方{@icon.faction-empire}单位拥有震慑1。",
+        "keywords": [
+          {
+            "id": "divulge",
+            "raw": "Divulge",
+            "label": "揭示",
+            "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+            "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+            "timing": [
+              "setup"
+            ],
+            "value": null
+          },
+          {
+            "id": "permanent",
+            "raw": "Permanent",
+            "label": "永久",
+            "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+            "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+            "timing": [
+              "global",
+              "end_round"
+            ],
+            "value": null
+          },
+          {
+            "id": "demoralize",
+            "raw": "Demoralize 1",
+            "label": "震慑1",
+            "summary": "重振后，向距离2内敌军合计添加最多X个压制标记。",
+            "full": "在带有震慑X关键词的单位重振后， 向在 2内的敌方单位添加总计最多X个压制标记。",
+            "timing": [
+              "activation"
+            ],
+            "value": "1"
+          }
+        ]
+      },
+      "keywords": [
+        {
+          "id": "divulge",
+          "raw": "Divulge",
+          "label": "揭示",
+          "summary": "在卡牌指定阶段或步骤开始时展示并结算揭示效果；不算打出，步骤结束返回命令手牌，永久卡例外。",
+          "full": "带有揭示关键词的命令卡可在揭示所指定的阶段或步骤开始时展示，并结算揭示后的卡文。若提供多个选项，必须选择一个。如此展示不视为打出，且在揭示所处步骤结束时返回该玩家的命令手牌；带有永久的揭示卡不返回手牌，而是留在场上。玩家可揭示任意数量的命令卡。双方同时可揭示时蓝方优先。若放弃该次机会，该卡之后不能再揭示。具体时机以卡文指定内容为准。",
+          "timing": [
+            "setup"
+          ],
+          "value": null
+        },
+        {
+          "id": "permanent",
+          "raw": "Permanent",
+          "label": "永久",
+          "summary": "结束阶段不弃置此命令卡；只要仍在场，其效果持续。",
+          "full": "带有永久关键词的命令卡在结束阶段不会像普通命令卡一样从场上弃置。只要该卡仍在场上，其效果持续生效。",
+          "timing": [
+            "global",
+            "end_round"
+          ],
+          "value": null
+        },
+        {
+          "id": "demoralize",
+          "raw": "Demoralize 1",
+          "label": "震慑1",
+          "summary": "重振后，向距离2内敌军合计添加最多X个压制标记。",
+          "full": "在带有震慑X关键词的单位重振后， 向在 2内的敌方单位添加总计最多X个压制标记。",
+          "timing": [
+            "activation"
+          ],
+          "value": "1"
+        }
+      ],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_officer_inexorable_advance",
+      "name": "Inexorable Advance",
+      "pips": 3,
+      "owner": "Imperial Officer",
+      "orders": "3 Trooper Units",
+      "description": "When a {@icon.rank-corps} Trooper unit is issued an Order with this card, its Ranged weapons gain Suppressive until the end of the Round.\n\nAdditionally, when an enemy unit Panics this Round, after the effect is resolved, an allied {@icon.rank-corps} unit may make a Speed-1 Move.",
+      "weapons": [],
+      "zh": {
+        "name": "势不可挡",
+        "owner": "帝国军官",
+        "orders": "3支士兵单位",
+        "description": "当一支{@icon.rank-corps}士兵单位通过此卡获发命令时，其远程武器获得压制，直到本轮结束。\n\n此外，本轮当一支敌方单位恐慌时，在该效果结算后，一支友方{@icon.rank-corps}单位可以进行一次速度1移动。",
+        "keywords": [
+          {
+            "id": "suppressive",
+            "raw": "Suppressive",
+            "label": "压制",
+            "summary": "攻击时，防御方额外获得1个压制标记。",
+            "full": "当单位防御拥有压制的攻击池时， 在分配压制标记给防御者步骤期间， 它获得额外1个压制标记。",
+            "timing": [
+              "attack"
+            ],
+            "value": null
+          }
+        ]
+      },
+      "keywords": [
+        {
+          "id": "suppressive",
+          "raw": "Suppressive",
+          "label": "压制",
+          "summary": "攻击时，防御方额外获得1个压制标记。",
+          "full": "当单位防御拥有压制的攻击池时， 在分配压制标记给防御者步骤期间， 它获得额外1个压制标记。",
+          "timing": [
+            "attack"
+          ],
+          "value": null
+        }
+      ],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_tagge_canny_adversary",
+      "name": "Canny Adversary",
+      "pips": 3,
+      "owner": "General Tagge",
+      "orders": "3 Units",
+      "description": "This Round, when an enemy unit within {@icon.range-4} of General Tagge spends 1 or more Aim tokens, Dodge tokens, or Surge tokens, add 1 Aim token, 1 Dodge token, or 1 Surge token to Logistical Prowess. Then, if the enemy unit is in LOS of General Tagge, that enemy unit gains 1 Observation token.",
+      "weapons": [],
+      "zh": {
+        "name": "精明的对手",
+        "owner": "塔格将军",
+        "orders": "3支单位",
+        "description": "本轮，塔格将军的{@icon.range-4}内一支敌方单位花费至少1个瞄准、闪避或激增标记时，在“后勤专长”上添加1个瞄准标记、1个闪避标记或1个激增标记。然后，若该敌方单位在塔格将军的视线中，该敌方单位获得1个观察标记。",
+        "keywords": []
+      },
+      "keywords": [],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。",
+          "原图未明确新增标记必须与花费的标记同类型；保留三种标记之间的 or，不添加该限制。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
+      "id": "empire_thrawn_i_want_you_to_know_failure",
+      "name": "I Want You to Know Failure",
+      "pips": 3,
+      "owner": "Grand Admiral Thrawn",
+      "orders": "3 Units",
+      "description": "This Round, when an allied {@icon.faction-empire} unit attacks, during the Form Attack Pools step it gains 1 Aim token if the defending unit does not have 1 or more facedown Order tokens.",
+      "weapons": [],
+      "zh": {
+        "name": "我想让你领教失败",
+        "owner": "索龙元帅",
+        "orders": "3支单位",
+        "description": "本轮，当一支友方{@icon.faction-empire}单位攻击时，在组成攻击池步骤期间，若防御单位没有背面朝上的命令标记，该友方单位获得1个瞄准标记。",
+        "keywords": []
+      },
+      "keywords": [],
+      "review": {
+        "status": "user_reviewed",
+        "source": "user_provided_card_image",
+        "notes": [
+          "英文按所供卡图转录；中文卡名、人物译名及规则译文已由用户校对。"
+        ],
+        "reviewedOn": "2026-11-03"
+      }
+    },
+    {
       "id": "seventhsister_come_and_prove_it",
       "name": "Come and Prove It",
       "pips": 1,
