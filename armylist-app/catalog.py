@@ -20,7 +20,7 @@ def canonical_rule_id(raw):
     return ALIASES.get(key,key)
 PARAMETER_RULES={'Direct':('direct','unit'),'Entourage':('entourage','unit'),'Retinue':('retinue','unit'),
  'Detachment':('detachment','unit'),'Associate':('associate','unit'),'Teamwork':('teamwork','unit'),
- 'Coordinate':('coordinate','unit'),'Aid':('aid','unit'),'Compel':('compel','unit'),
+ 'Coordinate':('coordinate','unit'),'Aid':('aid','unit'),'Compel':('compel','unit'),'Pulling The Strings':('pulling_the_strings','unit'),
  'Equip':('equip','equipment'),'Mercenary':('mercenary','faction'),'Independent':('independent','token'),
  'Hover':('hover_ground','mode'),'Fixed':('fixed_front','arc'),'Sidearm':('sidearm','mode'),
  'AI':('ai','action'),'Advanced Targeting':('advanced_targeting','unit'),'Eyes on the Prize':('eyes_on_the_prize','keyword')}

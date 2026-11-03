@@ -40,7 +40,7 @@ Never replace layout parsing with card-specific or filename-specific guesses.
    parameter-family table. Only accept a complete family name followed by a colon
    or whitespace; Direct must not match Direction or Indirect. Families include
    Direct, Entourage, Retinue, Detachment, Associate, Teamwork, Coordinate, Aid,
-   Compel, Equip, Mercenary, Independent, Hover, Fixed, Sidearm, AI, Advanced
+   Compel, Pulling The Strings, Equip, Mercenary, Independent, Hover, Fixed, Sidearm, AI, Advanced
    Targeting and Eyes on the Prize. Arm/Detonate keep their separate count/type
    grammar. Immune variants require exact known identifiers, never a guessed
    universal Immune rule. Unknown families remain original text for review.

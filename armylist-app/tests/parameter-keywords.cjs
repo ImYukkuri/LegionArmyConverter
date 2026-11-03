@@ -3,6 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const base=process.env.STATIC_BASE_URL||'http://127.0.0.1:5500/dist/';
 const cases=['Direct Empire Unit','Direct: Vehicle','Entourage Imperial Dark Troopers','Retinue Moff Gideon','Detachment Clone Trooper','Associate: Darth Vader','Teamwork Han Solo','Coordinate: Droid Trooper','Aid: Empire','Compel Corps','Equip: Armament, Doctrine','Mercenary Rebels, Republic','Independent Aim 1','Hover Air 2','Hover Ground','Fixed Front','Fixed','Sidearm Melee','AI: Attack','Advanced Targeting: Trooper 1','Eyes on the Prize: Tactical','Immune: Melee','Immune: Range 1 Weapons','One Step Ahead','Direction Vehicle','Indirect Vehicle','Equipment Test'];
 const lists=['Mercenary Rebels, Republic, Jump 2, Equip Armament, Doctrine, Impervious','Equip: Hunter, Wrecker, Echo, Tech, Crosshair, Jump 2','Entourage Imperial Dark Troopers, Tactical 1','Equip: Test (A, B), Jump 2'];
+cases.push('Pulling The Strings Empire Trooper','Pulling The Strings: Droid Trooper','Pulling The Strings','Pulling The StringsExtra Empire Trooper');
 (async()=>{
  const b=await chromium.launch();try{
   const p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.routeWebSocket(/\/ws$/,w=>w.close());await p.goto(base);
@@ -10,6 +11,9 @@ const lists=['Mercenary Rebels, Republic, Jump 2, Equip Armament, Doctrine, Impe
   const browser=await p.evaluate(async({cases,lists})=>{const m=await import('./pdf-parser.mjs'),c=await m.getCatalog();return {rules:cases.map(s=>m.resolveKeyword(s,c)),lists:lists.map(m.splitKeywords),families:m.PARAMETER_RULES}}, {cases,lists});
   assert.deepEqual(browser,python);assert.equal(browser.rules[0].label,'传令：Empire Unit');assert.equal(browser.rules[2].label,'统率：Imperial Dark Troopers');assert.equal(browser.rules[10].parameter,'Armament, Doctrine');assert.equal(browser.rules[13].id,'hover_ground');assert.equal(browser.rules[15].label,'固定：Front');assert.equal(browser.rules[22].label,'免疫：射程1武器');assert.equal(browser.rules[23].label,'领先一步');for(const i of [24,25,26])assert.equal(browser.rules[i].source,'unresolved');
   assert.deepEqual(browser.lists[0],['Mercenary Rebels, Republic','Jump 2','Equip Armament, Doctrine','Impervious']);assert.equal(browser.lists[1].length,2);assert.equal(browser.lists[3].length,2);
+  assert.equal(browser.rules[27].id,'pulling_the_strings');assert.equal(browser.rules[27].label,'幕后操纵：Empire Trooper');assert.equal(browser.rules[27].parameter,'Empire Trooper');assert.deepEqual(browser.rules[27].timing,['activation']);
+  assert.equal(browser.rules[28].label,'幕后操纵：Droid Trooper');assert.equal(browser.rules[29].label,'幕后操纵');assert.equal(browser.rules[30].source,'unresolved');
+  assert.equal(browser.rules[27].summary,'卡牌行动：选择2距离以内一个士兵单位，其进行一次攻击或移动。');assert(browser.rules[27].full.includes('一次免费攻击行动或一次免费移动行动'));
   if(process.env.LEGION_EMPIRE_PDF){
    const file=process.env.LEGION_EMPIRE_PDF;
    const actualPython=JSON.parse(execFileSync('python',['-X','utf8','-c',"import sys,json;from pathlib import Path;sys.path.insert(0,'armylist-app');from parser import parse_pdf;p=Path(sys.argv[1]);print(json.dumps(parse_pdf(p.read_bytes(),p.name)))",file],{encoding:'utf8'}));

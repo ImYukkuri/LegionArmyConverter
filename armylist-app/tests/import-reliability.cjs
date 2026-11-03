@@ -26,10 +26,12 @@ const base=process.env.STATIC_BASE_URL||'http://127.0.0.1:5500/dist/';
    await real.locator('#pdf-file').setInputFiles(fixture);await real.locator('#parse').click();await real.locator('#result').waitFor();const army=await real.evaluate(()=>army);
    assert.equal(army.units.length,3);assert.equal(army.totals.pdfPoints,307);assert.equal(army.totals.weapons,4);assert.equal(army.totals.incomplete,false);assert.equal(Object.keys(army.pdfGlossary).length,9);assert(!army.reviewItems.some(r=>r.category==='parsing'));
    assert.deepEqual(army.units.map(u=>u.name),['Grand Moff Tarkin','Darth Vader','Stormtroopers']);assert(army.pdfGlossary.compel.startsWith('After another'));assert(!army.pdfGlossary.compel.includes('Contempt'));
+   const pulling=army.units[0].keywords.find(k=>k.id==='pulling_the_strings');assert(pulling);assert.equal(pulling.label,'幕后操纵：Empire Trooper');assert(!army.reviewItems.some(r=>r.title==='Pulling The Strings Empire Trooper'));
    const python=JSON.parse(execFileSync('python',['-X','utf8','-c',"import sys,json;from pathlib import Path;sys.path.insert(0,'armylist-app');from parser import parse_pdf;p=Path(sys.argv[1]);print(json.dumps(parse_pdf(p.read_bytes(),p.name)))",fixture],{encoding:'utf8'}));
    const rounded=u=>({...u,provenance:{...u.provenance,bbox:u.provenance.bbox.map(v=>Math.round(v*1000)/1000)}});
    assert.deepEqual(army.totals,python.totals);assert.deepEqual(army.units.map(rounded),python.units.map(rounded));assert.deepEqual(army.pdfGlossary,python.pdfGlossary);
-   await real.locator('#preview').click();await real.locator('.unit').first().waitFor();assert.equal(await real.locator('.unit').count(),3);assert.equal(await real.locator('#review-items').count(),0);await real.goto(base);
+   await real.locator('#preview').click();await real.locator('.unit').first().waitFor();assert.equal(await real.locator('.unit').count(),3);assert.equal(await real.locator('#review-items').count(),0);
+   await real.locator('#unit-1 > summary').click();const chip=real.locator('#unit-1 [data-rule-id=pulling_the_strings]');assert.equal(await chip.locator('.keyword-name').textContent(),'幕后操纵：Empire Trooper');await chip.click();assert.equal(await real.locator('#pop-text').textContent(),pulling.summary);await real.locator('#popover [data-rule=full]').click();assert.equal(await real.locator('#pop-text').textContent(),pulling.full);await real.goto(base);
   }
   if(process.env.LEGION_OUTLINED_PDF){
    const requests=[];real.on('request',r=>requests.push(r.url()));await real.locator('#pdf-file').setInputFiles(process.env.LEGION_OUTLINED_PDF);await real.locator('#parse').click();await real.locator('#status.error').waitFor({timeout:60000});

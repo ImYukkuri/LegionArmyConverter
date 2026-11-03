@@ -1502,8 +1502,8 @@
     "identifier": "pulling_the_strings",
     "rulebook_heading": "幕后操纵",
     "rulebook_english_heading": "PULLING THE STRINGS",
-    "summary": "幕后操纵行动：选择距离2内另1个友方士兵，使其免费攻击1次或移动1次。",
-    "rulebook_quote": "作为一个卡牌行动， 带有幕后操纵关键词的单位可以选择在 2内的另一个友方士兵单位。 所选单位可以进行一次免费攻击行动或一次免费移动行动。",
+    "summary": "卡牌行动：选择2距离以内一个士兵单位，其进行一次攻击或移动。",
+    "rulebook_quote": "作为一个卡牌行动，带有幕后操纵关键词的单位可以选择在距离2内的另一个友方士兵单位。所选单位可以进行一次免费攻击行动或一次免费移动行动。",
     "timing": [
       "activation"
     ]
