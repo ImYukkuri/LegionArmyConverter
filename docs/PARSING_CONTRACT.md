@@ -4,6 +4,23 @@ This document defines the Legion HQ Stat Reference adapter. Changes must identif
 the affected stage, preserve the remaining stages and add a regression example.
 Never replace layout parsing with card-specific or filename-specific guesses.
 
+Safari/Quartz compatibility (2026-11-04): panel width is a candidate threshold
+(25% of the sheet), never proof of a unit. Deduplicate near-identical nested
+border paths within 3 PDF points; still require unit/command content anchors.
+Assemble all text in a header cell, including wrapped Hit/Def Surge labels.
+Ignore enclosing print-viewport rectangles when detecting Python tables. Use the
+visible print viewport to exclude browser URLs, timestamps and page numbers.
+Before parsing fields, join adjacent-page panel fragments only when column edges
+and full panel heights agree within 2 points, the predecessor crosses the visible
+page bottom, and the successor begins above the next page's visible top. Require
+one unique predecessor; retain provenance.pages. No unit-name matching guesses.
+For single-column glossary text, keep complete lines and carry the final rule onto
+the next consecutive glossary page. Preserve the existing two-column ordering.
+This is structural tolerance, not permission to fabricate missing values.
+Optional LEGION_SAFARI_PDF in text-fragments.cjs verifies 12 units, 30 weapons,
+1000 points, 6 command panels, 46 rules and four joined panel tails. Other battle
+objective/advantage pages remain extraction review items, outside unit parsing.
+
 1. Read PDF text and geometry locally. PDF text items are encoding/font fragments,
    not words. Reconstruct lines within each glossary column and reconstruct table
    headers within their smallest enclosing cell; retain raw fragments/geometry.

@@ -2,11 +2,12 @@
 import hashlib
 import io
 import json
+import copy
 import re
 import pdfplumber
 from catalog import enrich,norm
 
-VERSION='legion-hq-stat-reference/v2.4'
+VERSION='legion-hq-stat-reference/v2.5'
 def clean(s):return re.sub(r'\s+',' ',s or '').strip()
 def glossary_heading(line,heading_fonts):
     label,separator,_=line['text'].partition('.')
@@ -35,8 +36,42 @@ def comma_parts(text):
         elif c==','and depth==0:parts.append(text[start:i]);start=i+1
     return parts+[text[start:]]
 def bounds(page,min_height):
-    return sorted(set(tuple(round(c[k],3)for k in ('x0','top','x1','bottom'))for c in page.curves
-                      if c['width']>page.width*.4 and c['height']>min_height),key=lambda b:(b[1],b[0]))
+    candidates=sorted(set(tuple(round(c[k],3)for k in ('x0','top','x1','bottom'))for c in page.curves
+                      if c['width']>page.width*.25 and min_height<c['height']<page.height*2),key=lambda b:-(b[2]-b[0])*(b[3]-b[1]))
+    result=[]
+    for box in candidates:
+        if not any(all(abs(a-b)<3 for a,b in zip(box,old))for old in result):result.append(box)
+    return sorted(result,key=lambda b:(b[1],b[0]))
+
+def prepare_pages(doc):
+    pages=[];pending=[]
+    for index,page in enumerate(doc.pages):
+        boxes=bounds(page,30)
+        clips=[(r['x0'],r['top'],r['x1'],r['bottom'])for r in page.rects if r['x0']>=-.5 and r['top']>=-.5 and r['x1']<=page.width+.5 and r['bottom']<=page.height+.5 and r['width']>page.width*.7 and r['height']>page.height*.5]
+        clip=min(clips,key=lambda b:(b[2]-b[0])*(b[3]-b[1]))if clips else page.bbox
+        view=page.filter(lambda o:o.get('object_type')!='char'or clip[0]<=(o['x0']+o['x1'])/2<=clip[2]and clip[1]<=o['bottom']<=clip[3])
+        view._objects={k:[copy.copy(o)for o in v if not(k=='rect'and o['width']>page.width*.5 and o['height']>page.height*.5)]for k,v in view.objects.items()}
+        entry={'page':view,'boxes':boxes,'clip':clip,'continuations':{}};pages.append(entry)
+        for box in list(boxes):
+            if box[1]>=clip[1]-2:continue
+            matches=[p for p in pending if p['lastPage']==index-1 and abs(p['lastBox'][0]-box[0])<2 and abs(p['lastBox'][2]-box[2])<2 and abs((p['lastBox'][3]-p['lastBox'][1])-(box[3]-box[1]))<2]
+            if len(matches)!=1:continue
+            p=matches[0];offset=p['box'][1]-box[1];local=[o for o in view.chars if box[0]<=(o['x0']+o['x1'])/2<=box[2]and box[1]<=o['bottom']<=box[3]]
+            view._objects['char']=[o for o in view.chars if o not in local]
+            for kind,objects in view.objects.items():
+                selected=local if kind=='char'else [o for o in objects if o['x0']>=box[0]-.5 and o['x1']<=box[2]+.5 and o['top']>=clip[1]-.5 and o['bottom']<=clip[3]+.5]
+                for obj in selected:
+                    obj=copy.copy(obj)
+                    for key in ('top','bottom','doctop'):
+                        if key in obj:obj[key]+=offset
+                    p['entry']['page']._objects.setdefault(kind,[]).append(obj)
+            p['entry']['continuations'].setdefault(p['box'],[p['firstPage']+1]).append(index+1)
+            boxes.remove(box);p.update(lastPage=index,lastBox=box)
+        for box in boxes:
+            if box[3]>clip[3]+2:pending.append({'entry':entry,'box':box,'lastBox':box,'lastPage':index,'firstPage':index})
+    for entry in pages:
+        page=entry['page'];page.bbox=(0,0,page.width,max([page.height]+[b[3]+2 for b in entry['boxes']]))
+    return pages
 def split_keywords(text):
     result=[]
     for chunk in comma_parts(text):
@@ -100,6 +135,7 @@ def unit_panel(page,box,page_no,index):
     tables=[t for t in panel.find_tables()if t.extract()[0][0]=='Mini']
     if not tables:return None
     table=tables[0];rows=[[clean(v)for v in row if v is not None]for row in table.extract()]
+    rows[:2]=[[v for v in row if v]for row in rows[:2]]
     title,meta=unit_header(page,box,table.bbox[1])
     points=re.search(r'(\d+)\s*pts',meta);rank=re.search(r'COMMANDER|OPERATIVE|CORPS|SPECIAL|SUPPORT|HEAVY',meta)
     if not points or len(rows[1])!=7:raise ValueError(f'第{page_no}页单位标题或7列属性表不完整。')
@@ -107,7 +143,7 @@ def unit_panel(page,box,page_no,index):
     weapons=[]
     for row in rows[3:]:
         if len(row)!=4:raise ValueError(f'{name} 的武器列数异常。')
-        wn,distance,dice,kws=row;origin=re.search(r'\s*\(from (.+)\)$',wn)
+        wn,distance,dice,kws=row;wn=re.sub(r'-\s+(?=\w)','-',wn);origin=re.search(r'\s*\(from (.+)\)$',wn)
         weapons.append({'name':wn[:origin.start()]if origin else wn,'source':origin[1]if origin else None,'range':distance,'dice':dice,'keywords':split_keywords(kws)})
     tail=clean(page.crop((box[0]+5,table.bbox[3]+1,box[2]-5,box[3]-3)).extract_text())
     sections=parse_unit_sections(tail)
@@ -176,39 +212,47 @@ def parse_pdf(content,filename):
     with pdfplumber.open(io.BytesIO(content))as doc:
         if len(doc.pages)>50:raise ValueError('当前仅支持50页以内的军表。')
         army['source']['pageCount']=len(doc.pages)
-        previous_glossary=False;heading_fonts=set();text_pages=0
-        for number,page in enumerate(doc.pages,1):
+        previous_glossary=False;heading_fonts=set();text_pages=0;glossary_carry=None
+        for number,entry in enumerate(prepare_pages(doc),1):
+            page=entry['page'];boxes=entry['boxes']
             text=page.extract_text()or ''
             if text.strip():text_pages+=1
-            columns=[page.crop((x0,0,x1,page.height)).extract_text_lines(return_chars=True)for x0,x1 in ((0,page.width/2),(page.width/2,page.width))]
+            single_column=any(c['x0']<page.width/2<c['x1']and not any(b[0]<=c['x0']and c['x1']<=b[2]and b[1]<=c['top']<=b[3]for b in boxes)for c in page.chars)
+            columns=[page.crop((x0,0,x1,page.height)).extract_text_lines(return_chars=True)for x0,x1 in (((0,page.width),)if single_column else ((0,page.width/2),(page.width/2,page.width)))]
             glossary_title=next((line for col in columns for line in col if line['text']=='Keyword Glossary'),None)
             if glossary_title:heading_fonts={c['fontname']for c in glossary_title['chars']}
             def heading(line):return glossary_heading(line,heading_fonts)
-            is_glossary=bool(glossary_title)or previous_glossary and sum(bool(heading(line))for col in columns for line in col)>=2 and 'Mini'not in text and 'COMMAND CARDS'not in text
+            is_glossary=bool(glossary_title)or previous_glossary and sum(bool(heading(line))for col in columns for line in col)>=2 and not re.search(r'\bMini\b',text)and 'COMMAND CARDS'not in text
             previous_glossary=is_glossary
-            if number==1:army['title']=clean(page.crop((0,0,page.width,30)).extract_text())or army['title']
+            if number==1:army['title']=next((line['text']for col in columns for line in col if 'Stat Reference'in line['text']),clean(page.crop((0,0,page.width,30)).extract_text()))or army['title']
             if 'COMMAND CARDS'in text:
-                for box in bounds(page,30):
+                for box in boxes:
                     card=command_panel(page,box,number,len(army['commandCards'])+1)
                     if card:army['commandCards'].append(card)
             elif is_glossary:
                 glossary_top=glossary_title['top']if glossary_title else float('-inf')
-                for box in bounds(page,100):
+                for box in boxes:
+                    if box[3]-box[1]<=100:continue
                     if box[3]>=glossary_top:continue
                     unit=parse_unit_panel(page,box,number,len(army['units'])+1,army['reviewItems'])
                     if unit:army['units'].append(unit)
                 for col in columns:
-                    current=None
+                    current=glossary_carry if single_column and not glossary_title else None
                     for line in col:
                         if line['top']<=glossary_top:continue
                         if heading(line):
                             label=line['text'].split('.',1)[0];current=norm(label)
-                            army['pdfGlossary'][current]=line['text'].split('.',1)[1].strip()
-                        elif current:army['pdfGlossary'][current]+=' '+line['text']
+                            body=line['text'].split('.',1)[1].strip()
+                            if current not in army['pdfGlossary']:army['pdfGlossary'][current]=body
+                            elif not army['pdfGlossary'][current].endswith(body):army['pdfGlossary'][current]+=' '+body
+                        elif current and not army['pdfGlossary'][current].endswith(line['text']):army['pdfGlossary'][current]+=' '+line['text']
+                    glossary_carry=current
             else:
                 before=len(army['units']);review_before=len(army['reviewItems'])
-                for box in bounds(page,100):
+                for box in boxes:
+                    if box[3]-box[1]<=100:continue
                     unit=parse_unit_panel(page,box,number,len(army['units'])+1,army['reviewItems'])
+                    if unit and box in entry['continuations']:unit['provenance']['pages']=entry['continuations'][box]
                     if unit:army['units'].append(unit)
                 if len(army['units'])==before and len(army['reviewItems'])==review_before:
                     army['reviewItems'].append({'category':'parsing','code':'page_unparsed','title':f'第 {number} 页',

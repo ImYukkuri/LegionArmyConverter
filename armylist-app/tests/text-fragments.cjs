@@ -52,6 +52,19 @@ const pythonPdf=file=>JSON.parse(execFileSync('python',['-X','utf8','-c',"import
       await p.locator('#preview').click();await p.locator('.unit').first().waitFor();assert.equal(await p.locator('.unit').count(),10);await p.locator('#expand-all').click();assert.equal(await p.locator('.unit-weapons .weapon').count(),27);
       for(const width of [1280,390]){await p.setViewportSize({width,height:900});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await p.locator('#review-items,#notes,.partial-unit-note').count(),0)}
     }
-    assert.deepEqual(errors,[]);console.log('PASS: per-cell fragmented/shuffled/scaled text; complete long titles; multi-font and numeric glossary labels; wrapped commands; Python/browser parity; optional mobile PDF and viewer.');
+    if(process.env.LEGION_SAFARI_PDF){
+      await p.goto(base);const file=process.env.LEGION_SAFARI_PDF,expected=pythonPdf(file);
+      await p.locator('#pdf-file').setInputFiles(file);await p.locator('#parse').click();await p.locator('#result').waitFor({timeout:60000});const actual=await p.evaluate(()=>army);
+      assert.equal(actual.units.length,12);assert.equal(actual.totals.pdfPoints,1000);assert.equal(actual.totals.weapons,30);assert.equal(actual.commandCards.length,6);assert.equal(Object.keys(actual.pdfGlossary).length,46);
+      assert.deepEqual(actual.units.map(semantic),expected.units.map(semantic));assert.deepEqual(actual.pdfGlossary,expected.pdfGlossary);
+      assert(actual.units.every(u=>!u.parseStatus));assert(!actual.reviewItems.some(i=>i.category==='parsing'&&i.locations.some(l=>l.page<8)));
+      for(const i of [4,5]){assert.deepEqual(actual.units[i].provenance.pages,[1,2]);assert.equal(actual.units[i].upgrades.length,3);assert.equal(actual.units[i].points,75)}
+      for(const i of [10,11])assert.deepEqual(actual.units[i].provenance.pages,[2,3]);
+      assert(actual.units[11].upgrades.some(c=>c.name==='Up Close and Personal'));assert(actual.pdfGlossary.exemplar.endsWith('the token.'));assert(!JSON.stringify(actual.pdfGlossary).includes('https://'));
+      assert.equal(actual.commandCards.filter(c=>c.name==='Out of the Shadows').length,1);
+      await p.locator('#preview').click();await p.locator('.unit').first().waitFor();await p.locator('#expand-all').click();assert.equal(await p.locator('.unit-weapons .weapon').count(),30);
+      await p.setViewportSize({width:390,height:900});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+    assert.deepEqual(errors,[]);console.log('PASS: per-cell fragmented/shuffled/scaled text; complete long titles; multi-font and numeric glossary labels; wrapped commands; Python/browser parity; optional mobile/Safari PDF and viewer.');
   }finally{await b.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

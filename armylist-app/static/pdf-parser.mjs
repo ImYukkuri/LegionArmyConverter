@@ -52,6 +52,27 @@ const rowItem=row=>({text:row.text,x:Math.min(...row.items.map(t=>t.x)),y:row.y,
   width:Math.max(...row.items.map(t=>t.x+t.width))-Math.min(...row.items.map(t=>t.x)),
   height:Math.max(...row.items.map(t=>t.height)),font:row.items[0].font});
 function uniqueBoxes(boxes){return [...new Map(boxes.map(b=>[b.map(v=>Math.round(v*100)/100).join(','),b])).values()]}
+function distinctPanels(boxes){
+  const result=[];for(const b of uniqueBoxes(boxes).sort((a,b)=>(b[2]-b[0])*(b[3]-b[1])-(a[2]-a[0])*(a[3]-a[1]))){if(!result.some(a=>a.every((v,i)=>Math.abs(v-b[i])<3)))result.push(b)}
+  return result.sort((a,b)=>Math.round(a[1]-b[1])||a[0]-b[0]);
+}
+export function stitchPanelContinuations(pages){
+  const pending=[];
+  for(let index=0;index<pages.length;index++){
+    const geo=pages[index];if(!geo)continue;
+    for(const box of [...geo.panels]){
+      if(box[1]>=geo.contentBox[1]-2)continue;
+      const matches=pending.filter(p=>p.lastPage===index-1&&Math.abs(p.lastBox[0]-box[0])<2&&Math.abs(p.lastBox[2]-box[2])<2&&Math.abs((p.lastBox[3]-p.lastBox[1])-(box[3]-box[1]))<2);
+      if(matches.length!==1)continue;
+      const p=matches[0],offset=p.box[1]-box[1],local=geo.items.filter(t=>inside(t,box));
+      p.geo.items.push(...local.map(t=>({...t,y:t.y+offset})));geo.items=geo.items.filter(t=>!local.includes(t));
+      for(const key of ['rects','edges'])p.geo[key].push(...geo[key].filter(b=>b[0]>=box[0]-.5&&b[2]<=box[2]+.5&&b[1]>=geo.contentBox[1]-.5&&b[3]<=geo.contentBox[3]+.5).map(b=>[b[0],b[1]+offset,b[2],b[3]+offset]));
+      (p.geo.continuations??={})[p.box.join(',')]=[...(p.geo.continuations?.[p.box.join(',')]||[p.firstPage+1]),index+1];
+      geo.panels=geo.panels.filter(b=>b!==box);p.lastBox=box;p.lastPage=index;
+    }
+    for(const box of geo.panels)if(box[3]>geo.contentBox[3]+2)pending.push({geo,box,lastBox:box,lastPage:index,firstPage:index});
+  }
+}
 async function pageGeometry(page){
   const viewport=page.getViewport({scale:1}),content=await page.getTextContent(),operators=await page.getOperatorList();
   const items=content.items.filter(t=>t.str?.trim()).map(t=>{
@@ -69,10 +90,11 @@ async function pageGeometry(page){
       const box=[Math.min(...corners.map(p=>p[0])),Math.min(...corners.map(p=>p[1])),Math.max(...corners.map(p=>p[0])),Math.max(...corners.map(p=>p[1]))];
       if(box[2]-box[0]>5&&box[3]-box[1]>7)rects.push(box);
       if(box[2]-box[0]>5&&box[3]-box[1]<2)edges.push(box);
-      if(a[1]?.some(path=>path.length>40)&&box[2]-box[0]>viewport.width*.4&&box[3]-box[1]>30)panels.push(box);
+      if(a[1]?.some(path=>path.length>40)&&box[2]-box[0]>viewport.width*.25&&box[3]-box[1]>30&&box[3]-box[1]<viewport.height*2)panels.push(box);
     }
   }
-  return {items,rects:uniqueBoxes(rects),edges:uniqueBoxes(edges),panels:uniqueBoxes(panels).sort((a,b)=>Math.round(a[1]-b[1])||a[0]-b[0]),width:viewport.width,height:viewport.height};
+  const contentBox=rects.filter(b=>b[0]>=-.5&&b[1]>=-.5&&b[2]<=viewport.width+.5&&b[3]<=viewport.height+.5&&b[2]-b[0]>viewport.width*.7&&b[3]-b[1]>viewport.height*.5).sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]))[0]||[0,0,viewport.width,viewport.height];
+  return {items:items.filter(t=>inside(t,contentBox)),rects:uniqueBoxes(rects),edges:uniqueBoxes(edges),panels:distinctPanels(panels),contentBox,width:viewport.width,height:viewport.height};
 }
 function cellFor(t,rects){
   return rects.filter(b=>inside(t,b)).sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]))[0];
@@ -82,7 +104,7 @@ function tableTextItems(items,rects){
   // Reconstruct within the smallest cell only; never merge neighbouring columns.
   const cells=new Map(),unplaced=[];
   for(const item of items){const cell=cellFor(item,rects);if(!cell){unplaced.push(item);continue}const key=cell.join(',');if(!cells.has(key))cells.set(key,[]);cells.get(key).push(item)}
-  return [...unplaced,...[...cells.values()].flatMap(group=>lines(group).map(rowItem))];
+  return [...unplaced,...[...cells.values()].map(group=>{const rows=lines(group);return rowItem({text:rows.map(r=>r.text).join(' '),y:rows[0].y,items:group})})];
 }
 function unitHeader(items,box,bottom){
   const header=items.filter(t=>t.y<bottom),size=Math.max(0,...header.map(t=>t.height));
@@ -108,7 +130,8 @@ export function parseUnitSections(tail){
 }
 function unitPanel(geo,box,page,index){
   const items=geo.items.filter(t=>inside(t,box)),tableItems=tableTextItems(items,geo.rects),mini=tableItems.find(t=>t.text==='Mini');if(!mini)return null;
-  const statHeads=['Mini','HP','Def','Cor','Spd','Hit Surge','Def Surge'].map(name=>tableItems.find(t=>t.text===name&&Math.abs(t.y-mini.y)<2));
+  const miniCell=cellFor(mini,geo.rects);
+  const statHeads=['Mini','HP','Def','Cor','Spd','Hit Surge','Def Surge'].map(name=>tableItems.find(t=>t.text===name&&(miniCell?Math.abs((cellFor(t,geo.rects)||[])[1]-miniCell[1])<2:Math.abs(t.y-mini.y)<2)));
   if(statHeads.some(t=>!t))throw new Error(`第${page}页的7列属性表不完整。`);
   const headerCell=cellFor(mini,geo.rects);if(!headerCell)throw new Error('未能定位属性表单元格。');
   const {title,meta}=unitHeader(items,box,headerCell[1]);
@@ -136,7 +159,7 @@ function unitPanel(geo,box,page,index){
   const weaponRows=boundaries.slice(0,-1).map((y,i)=>[first[0],y,first[2],boundaries[i+1]]);
   weapons.push(...weaponRows.map(row=>{
     const cells=columns.map(b=>textIn(items,[b[0],row[1],b[2],row[3]]));rows.push(cells);
-    const [wn,range,dice,kws]=cells,origin=wn.match(/\s*\(from (.+)\)$/);
+    let [wn,range,dice,kws]=cells;wn=wn.replace(/-\s+(?=\w)/g,'-');const origin=wn.match(/\s*\(from (.+)\)$/);
     if(!wn||!/^\d/.test(range)||!dice)throw new Error(`${name} 的武器行不完整。`);
     return {name:origin?wn.slice(0,origin.index):wn,source:origin?.[1]||null,range,dice,keywords:splitKeywords(kws)};
   }));
@@ -146,7 +169,7 @@ function unitPanel(geo,box,page,index){
   return {id:`unit-${index}`,name,subtitle,rank:rank?rank[0][0]+rank[0].slice(1).toLowerCase():null,points:Number(points[1]),
     stats:Object.fromEntries(['mini','hp','defense','courage','speed','attackSurge','defenseSurge'].map((k,i)=>[k,/^\d+$/.test(values[i])?Number(values[i]):values[i]==='—'?null:values[i]])),
     weapons,...sections,
-    provenance:{page,bbox:box,title,meta,table:rows,tail}};
+    provenance:{page,bbox:box,title,meta,table:rows,tail,...(geo.continuations?.[box.join(',')]?{pages:geo.continuations[box.join(',')]}:{})}};
 }
 export function parseUnitPanel(geo,box,page,index,reviewItems=[]){
   const items=geo.items.filter(t=>inside(t,box));
@@ -270,26 +293,30 @@ export async function parsePdf(buffer,filename,onProgress=()=>{}){
   const doc=await getDocument({data:bytes,cMapUrl:new URL('./vendor/pdfjs/cmaps/',import.meta.url).href,cMapPacked:true,standardFontDataUrl:new URL('./vendor/pdfjs/standard_fonts/',import.meta.url).href,wasmUrl:new URL('./vendor/pdfjs/wasm/',import.meta.url).href,isEvalSupported:false}).promise;
   try{
     if(doc.numPages>50)throw new Error('当前仅支持50页以内的军表。');
-    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2.4',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
-    let previousGlossary=false,headingFonts=new Set(),textPages=0;
+    const army={schema:'legion-army/v2',source:{pdf:filename,sha256,parserMode:'legion-hq-stat-reference/browser-v2.5',pageCount:doc.numPages},title:'未命名军表',units:[],commandCards:[],pdfGlossary:{},diagnostics:[],reviewItems:[]};
+    let previousGlossary=false,headingFonts=new Set(),textPages=0,glossaryCarry=null;
+    const geometries=[];
     for(let n=1;n<=doc.numPages;n++){
-      onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const pdfPage=await doc.getPage(n);let geo;
-      try{geo=await pageGeometry(pdfPage)}catch(error){
-        const content=await pdfPage.getTextContent().catch(()=>({items:[]}));if(content.items.some(t=>t.str?.trim()))textPages++;army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:content.items.map(t=>t.str||'').join(' ')||'此页未能提取到文字。',locations:[{page:n,context:'整页'}]});continue;
-      }
+      onProgress(`正在读取页面结构 ${n} / ${doc.numPages}…`);
+      try{geometries.push(await pageGeometry(await doc.getPage(n)))}catch(error){geometries.push(null);army.reviewItems.push({category:'parsing',code:'page_unparsed',title:`第 ${n} 页`,message:'页面版式读取失败：'+error.message,rawText:'此页未能读取。',locations:[{page:n,context:'整页'}]})}
+    }
+    stitchPanelContinuations(geometries);
+    for(let n=1;n<=doc.numPages;n++){
+      onProgress(`正在浏览器内提取第 ${n} / ${doc.numPages} 页…`);const geo=geometries[n-1];if(!geo)continue;
       if(geo.items.length)textPages++;
-      const glossaryColumns=[[0,geo.width/2],[geo.width/2,geo.width]].map(([x0,x1])=>lines(geo.items.filter(t=>t.x>=x0&&t.x<x1)));
+      const singleColumn=geo.items.some(t=>t.x<geo.width/2&&t.x+t.width>geo.width/2+30&&!geo.panels.some(b=>inside(t,b)));
+      const glossaryColumns=(singleColumn?[[0,geo.width]]:[[0,geo.width/2],[geo.width/2,geo.width]]).map(([x0,x1])=>lines(geo.items.filter(t=>t.x>=x0&&t.x<x1)));
       const pageRows=glossaryColumns.flat(),text=pageRows.map(r=>r.text).join(' '),glossaryTitle=pageRows.find(r=>r.text==='Keyword Glossary');
       if(glossaryTitle)headingFonts=new Set(glossaryTitle.items.map(t=>t.font));
       const isHeading=row=>glossaryHeading(row,headingFonts);
       const isGlossary=!!glossaryTitle||previousGlossary&&pageRows.filter(isHeading).length>=2&&!/\bMini\b/.test(text)&&!text.includes('COMMAND CARDS');previousGlossary=isGlossary;
-      if(n===1)army.title=textIn(geo.items,[0,0,geo.width,30])||army.title;
+      if(n===1)army.title=pageRows.find(r=>r.text.includes('Stat Reference'))?.text||textIn(geo.items,[0,0,geo.width,30])||army.title;
       if(text.includes('COMMAND CARDS')){
         for(const box of geo.panels){const card=parseCommandPanel(geo,box,n,army.commandCards.length+1);if(card)army.commandCards.push(card)}
       }else if(isGlossary){
         const glossaryTop=glossaryTitle?.y??-Infinity;
         for(const box of geo.panels.filter(b=>b[3]-b[1]>100&&b[3]<glossaryTop)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}
-        for(const column of glossaryColumns){let current=null;for(const row of column.filter(r=>r.y>glossaryTop)){if(isHeading(row)){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));army.pdfGlossary[current]=row.text.slice(at+1).trim()}else if(current)army.pdfGlossary[current]+=' '+row.text}}
+        for(const column of glossaryColumns){let current=singleColumn&&!glossaryTitle?glossaryCarry:null;for(const row of column.filter(r=>r.y>glossaryTop)){if(isHeading(row)){const at=row.text.indexOf('.');current=norm(row.text.slice(0,at));const body=row.text.slice(at+1).trim();if(!army.pdfGlossary[current])army.pdfGlossary[current]=body;else if(!army.pdfGlossary[current].endsWith(body))army.pdfGlossary[current]+=' '+body}else if(current&&!army.pdfGlossary[current].endsWith(row.text))army.pdfGlossary[current]+=' '+row.text}glossaryCarry=current}
       }else{
         const before=army.units.length,reviewBefore=army.reviewItems.length;
         for(const box of geo.panels.filter(b=>b[3]-b[1]>100)){const u=parseUnitPanel(geo,box,n,army.units.length+1,army.reviewItems);if(u)army.units.push(u)}
